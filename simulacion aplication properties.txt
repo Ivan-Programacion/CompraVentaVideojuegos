@@ -1,0 +1,3 @@
+hay que añadirlo en resources --> application.properties
+
+Con este texto: spring.application.name=CompraVentaVideojuegos
