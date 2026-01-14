@@ -47,29 +47,53 @@ public class CompraVentaVideojuegosApplication {
 	}
 
 	@GetMapping("/registroAdmin/{nombre}/{pwd}")
-	public boolean registroAdmin(@PathVariable String nombre, @PathVariable String pwd) {
+	public Usuario registroAdmin(@PathVariable String nombre, @PathVariable String pwd) {
 		// Guardamos en una lista todos los usuarios que coincidan con el nombre que se
 		// intenta registrar
-		List<Usuario> listaUsuarios = jdbcTemplate
-				.query(String.format("select * from usuarios where nombre = %s", nombre), new ListarUsuarios());
+		List<Usuario> listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?",
+				new ListarUsuarios(), nombre);
 		// Si la lista de usuarios está vacía, significa que no existe ningún usuario
 		// con ese nombre
-		if (listaUsuarios.isEmpty())
-			return true;
-		return false;
+		System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
+		if (listaUsuarios.isEmpty()) {
+			// Creamos el usuario y lo devolvemos en el return
+			/*
+			 * IMPORTANTE: HAY QUE REALIZAR HASHEAO DE PASSWORD
+			 */
+			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre, pwd, 0,
+					true);
+			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
+			System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
+			Usuario adminNuevo = listaUsuarios.get(0);
+			return adminNuevo;
+		}
+		// Si ya existe el usuario, devolvemos null
+		return null;
 	}
-	
+
 	@GetMapping("/registro/{nombre}/{pwd}")
-	public boolean registro(@PathVariable String nombre, @PathVariable String pwd) {
+	public Usuario registro(@PathVariable String nombre, @PathVariable String pwd) {
 		// Guardamos en una lista todos los usuarios que coincidan con el nombre que se
 		// intenta registrar
-		List<Usuario> listaUsuarios = jdbcTemplate
-				.query(String.format("select * from usuarios where nombre = %s", nombre), new ListarUsuarios());
+		List<Usuario> listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?",
+				new ListarUsuarios(), nombre);
 		// Si la lista de usuarios está vacía, significa que no existe ningún usuario
 		// con ese nombre
-		if (listaUsuarios.isEmpty())
-			return true;
-		return false;
+		System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
+		if (listaUsuarios.isEmpty()) {
+			// Creamos el usuario y lo devolvemos en el return
+			/*
+			 * IMPORTANTE: HAY QUE REALIZAR HASHEAO DE PASSWORD
+			 */
+			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre, pwd, 0,
+					false);
+			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
+			System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
+			Usuario usuarioNuevo = listaUsuarios.get(0);
+			return usuarioNuevo;
+		}
+		// Si ya existe el usuario, devolvemos null
+		return null;
 	}
 
 }
