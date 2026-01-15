@@ -63,8 +63,8 @@ public class CompraVentaVideojuegosApplication {
 		System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
 		if (listaUsuarios.isEmpty()) {
 			// Creamos el usuario y lo devolvemos en el return
-			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre, hashearPwd(pwd), 0,
-					true);
+			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
+					hashearPwd(pwd), 0, true);
 			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
 			System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
 			Usuario adminNuevo = listaUsuarios.get(0);
@@ -85,8 +85,8 @@ public class CompraVentaVideojuegosApplication {
 		System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
 		if (listaUsuarios.isEmpty()) {
 			// Creamos el usuario y lo devolvemos en el return
-			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre, hashearPwd(pwd), 0,
-					false);
+			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
+					hashearPwd(pwd), 0, false);
 			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
 			System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
 			Usuario usuarioNuevo = listaUsuarios.get(0);
@@ -96,8 +96,15 @@ public class CompraVentaVideojuegosApplication {
 		return null;
 	}
 
+	@GetMapping("/juegos")
+	public List<Juego> juegos() {
+		// Listamos todos los juegos
+		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos", new LisarJuegos());
+		return listaJuegos;
+	}
+
 	// ===================== MÉTODOS NO MAPPEADOS ===================== //
-	
+
 	private String hashearPwd(String pwd) {
 		String HashedPwd = "";
 		try {
