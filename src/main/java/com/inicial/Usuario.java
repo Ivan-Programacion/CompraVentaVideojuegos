@@ -3,17 +3,18 @@ package com.inicial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
-public class Usuario implements Serializable {
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
+public class Usuario implements Serializable {
+	// JsonIgnore --> ignora el atributo a la hora de mandar el JSON por el endpoint
+	@JsonIgnore
 	private Long id;
 	private String nombre;
+	@JsonIgnore
 	private String pwd;
 	private BigDecimal saldo;
+	@JsonIgnore
 	private boolean admin;
-
-	// Atributos no mappeados en la BBDD
-//	private List<Juego> listaComprados;
-//	private List<Juego> listaEnVenta;
 
 	public Usuario(Long id, String nombre, String pwd, BigDecimal saldo, boolean admin) {
 		this.id = id;

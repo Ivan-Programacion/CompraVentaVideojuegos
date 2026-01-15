@@ -3,6 +3,8 @@ package com.inicial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class Juego implements Serializable {
 
 	private Long id;
@@ -11,7 +13,9 @@ public class Juego implements Serializable {
 	private String nombre;
 	private String imagen;
 	private BigDecimal precio;
+	@JsonIgnore
 	private String clave;
+	@JsonIgnore
 	private boolean aceptado;
 
 	public Juego(Long id, Long vendedor_id, Long comprador_id, String nombre, String imagen, BigDecimal precio,

@@ -52,6 +52,14 @@ public class CompraVentaVideojuegosApplication {
 		return "Se han creado las tablas correctamente";
 	}
 
+	/**
+	 * Endpoint para registro de admin
+	 * 
+	 * @param nombre
+	 * @param pwd
+	 * @return La instancia nueva del usuario, o nulo si ay existe un usuario con
+	 *         ese nombre
+	 */
 	@GetMapping("/registroAdmin/{nombre}/{pwd}")
 	public Usuario registroAdmin(@PathVariable String nombre, @PathVariable String pwd) {
 		// Guardamos en una lista todos los usuarios que coincidan con el nombre que se
@@ -60,13 +68,12 @@ public class CompraVentaVideojuegosApplication {
 				new ListarUsuarios(), nombre);
 		// Si la lista de usuarios está vacía, significa que no existe ningún usuario
 		// con ese nombre
-		System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
 		if (listaUsuarios.isEmpty()) {
 			// Creamos el usuario y lo devolvemos en el return
 			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
 					hashearPwd(pwd), 0, true);
 			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
-			System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
+			System.out.println("ADMIN REGISTRADO " + listaUsuarios.toString()); // LOG
 			Usuario adminNuevo = listaUsuarios.get(0);
 			return adminNuevo;
 		}
@@ -74,6 +81,14 @@ public class CompraVentaVideojuegosApplication {
 		return null;
 	}
 
+	/**
+	 * Endpoint para registro usuario
+	 * 
+	 * @param nombre
+	 * @param pwd
+	 * @return La instancia nueva del usuario, o nulo si ay existe un usuario con
+	 *         ese nombre
+	 */
 	@GetMapping("/registro/{nombre}/{pwd}")
 	public Usuario registro(@PathVariable String nombre, @PathVariable String pwd) {
 		// Guardamos en una lista todos los usuarios que coincidan con el nombre que se
@@ -82,13 +97,12 @@ public class CompraVentaVideojuegosApplication {
 				new ListarUsuarios(), nombre);
 		// Si la lista de usuarios está vacía, significa que no existe ningún usuario
 		// con ese nombre
-		System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
 		if (listaUsuarios.isEmpty()) {
 			// Creamos el usuario y lo devolvemos en el return
 			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
 					hashearPwd(pwd), 0, false);
 			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
-			System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
+			System.out.println("REGISTRO NUEVO: " + listaUsuarios.toString()); // LOG
 			Usuario usuarioNuevo = listaUsuarios.get(0);
 			return usuarioNuevo;
 		}
@@ -96,10 +110,53 @@ public class CompraVentaVideojuegosApplication {
 		return null;
 	}
 
+	/**
+	 * Endpoint para realizar el login
+	 * 
+	 * @param nombre
+	 * @param pwd
+	 * @return El usuario si existe. Si no existe, nulo
+	 */
+	@GetMapping("/login/{nombre}/{pwd}")
+	public Usuario login(@PathVariable String nombre, @PathVariable String pwd) {
+		// Guardamos en una lista todos los usuarios que coincidan con el nombre que se
+		// intenta registrar
+		List<Usuario> listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ? and pwd = ?",
+				new ListarUsuarios(), nombre, hashearPwd(pwd));
+		// Si la lista de usuarios NO está vacía, significa que ya tiene cuenta
+		if (!listaUsuarios.isEmpty()) {
+			System.out.println("LOGIN USARIO: " + listaUsuarios.toString()); // LOG
+			Usuario loginUsuario = listaUsuarios.get(0);
+			// Se le pasa su usario
+			return loginUsuario;
+		}
+		System.err.println("INTENTO DE LOGIN FALLIDO: " + nombre); // LOG
+		// Si la lista está vacía significa que, o el usuario no coincide o la
+		// contraseña está mal. Y se devuelve null
+		return null;
+	}
+
+	/**
+	 * Endpoint para listar los juegos APROBADOS y los que NO tienen comprador aun
+	 * 
+	 * @return La lista de los juegos APROBADOS y que no han sido comprados
+	 */
 	@GetMapping("/juegos")
 	public List<Juego> juegos() {
 		// Listamos todos los juegos
-		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos", new LisarJuegos());
+		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where aceptado = true and comprador_id is NULL", new LisarJuegos());
+		return listaJuegos;
+	}
+
+	/**
+	 * Endpoint para listar los juegos NO aprobados
+	 * 
+	 * @return la lista de los juegos NO aprobados
+	 */
+	@GetMapping("/juegosPendientes")
+	public List<Juego> juegosPendientes() {
+		// Listamos todos los juegos
+		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where aceptado != true", new LisarJuegos());
 		return listaJuegos;
 	}
 
