@@ -1,5 +1,7 @@
 package com.inicial;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 import org.springframework.boot.SpringApplication;
@@ -14,9 +16,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class CompraVentaVideojuegosApplication {
 
 	private final JdbcTemplate jdbcTemplate;
+	private final String nombreTienda;
 
 	public CompraVentaVideojuegosApplication(JdbcTemplate jdbcTemplate) {
 		this.jdbcTemplate = jdbcTemplate;
+		nombreTienda = "RetroGames";
 	}
 
 	public static void main(String[] args) {
@@ -43,6 +47,8 @@ public class CompraVentaVideojuegosApplication {
 				+ "                    comprador_id BIGINT DEFAULT NULL,\n"
 				+ "                    CONSTRAINT fk_vendedor FOREIGN KEY (vendedor_id) REFERENCES usuarios(id) ON DELETE CASCADE,\n"
 				+ "                    CONSTRAINT fk_comprador FOREIGN KEY (comprador_id) REFERENCES usuarios(id) ON DELETE SET NULL)");
+		jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombreTienda, "", 0,
+				true);
 		return "Se han creado las tablas correctamente";
 	}
 
@@ -57,10 +63,7 @@ public class CompraVentaVideojuegosApplication {
 		System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
 		if (listaUsuarios.isEmpty()) {
 			// Creamos el usuario y lo devolvemos en el return
-			/*
-			 * IMPORTANTE: HAY QUE REALIZAR HASHEAO DE PASSWORD
-			 */
-			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre, pwd, 0,
+			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre, hashearPwd(pwd), 0,
 					true);
 			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
 			System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
@@ -82,10 +85,7 @@ public class CompraVentaVideojuegosApplication {
 		System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
 		if (listaUsuarios.isEmpty()) {
 			// Creamos el usuario y lo devolvemos en el return
-			/*
-			 * IMPORTANTE: HAY QUE REALIZAR HASHEAO DE PASSWORD
-			 */
-			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre, pwd, 0,
+			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre, hashearPwd(pwd), 0,
 					false);
 			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
 			System.out.println(listaUsuarios.toString()); // PRUEBA ---------------------------------------
@@ -94,6 +94,26 @@ public class CompraVentaVideojuegosApplication {
 		}
 		// Si ya existe el usuario, devolvemos null
 		return null;
+	}
+
+	// ===================== MÉTODOS NO MAPPEADOS ===================== //
+	
+	private String hashearPwd(String pwd) {
+		String HashedPwd = "";
+		try {
+			// Cogemos la instancia (utilizaremos el método de hasheo MD5)
+			MessageDigest md = MessageDigest.getInstance("SHA3-256");
+			// Convertimos la contraseña en bytes y actualizamos el contenido en la
+			// instancia
+			md.update(pwd.getBytes());
+			// Se realiza el resumen de la contraseña y se guarda en un String
+			HashedPwd = new String(md.digest());
+
+		} catch (NoSuchAlgorithmException e) {
+			System.err.println("Error al hashear la contraseña");
+			// e.printStackTrace();
+		}
+		return HashedPwd;
 	}
 
 }
