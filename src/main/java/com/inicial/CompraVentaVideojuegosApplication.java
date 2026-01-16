@@ -144,8 +144,76 @@ public class CompraVentaVideojuegosApplication {
 	@GetMapping("/juegos")
 	public List<Juego> juegos() {
 		// Listamos todos los juegos
-		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where aceptado = true and comprador_id is NULL", new LisarJuegos());
+		List<Juego> listaJuegos = jdbcTemplate
+				.query("select * from juegos where aceptado = true and comprador_id is NULL", new LisarJuegos());
 		return listaJuegos;
+	}
+
+	/**
+	 * Endpoint para subir un juego a la BBDD
+	 */
+
+	// VER @RequestParam para los parámetros. Evitamos problemas de decimales y
+	// nombres con espacios
+	@GetMapping("/subirjuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
+	public String subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
+			@PathVariable double precio, @PathVariable String clave) {
+
+		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
+				idVendedor);
+		if (user.isEmpty()) {
+			return "El usuario no ha sido encontrado en la BBDD";
+		}
+
+		try {
+			jdbcTemplate.update(
+					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, comprador_id) VALUES (?,?,?,?,?, false, NULL)",
+					nombre, imagen, precio, clave, idVendedor);
+			return "Se ha subido el juego correctamente :)";
+		} catch (Exception e) {
+			return "Ha habido un error al subir el juego" + e.getMessage();
+		}
+
+	}
+
+	/**
+	 * Método para aprobar anuncios desde admin
+	 */
+	@GetMapping("/admin/aprobarJuego/{idJuego}/{idUsuario}")
+	public String aprobarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
+		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
+				idUsuario);
+		if (usuarios.isEmpty() || !usuarios.get(0).isAdmin()) {
+			return "No cuentas con permisos para aprobar anuncios";
+		}
+
+		int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = true WHERE id = ?", idJuego);
+		if (fila > 0) {
+			return "Juego aprobado";
+		} else {
+			return "Ha ocurrido un error al aprobar el juego";
+		}
+	}
+
+	/**
+	 * Método para rechazar anuncios desde admin
+	 */
+
+	@GetMapping("/admin/rechazarJuego/{idJuego}/{idUsuario}")
+	public String rechazarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
+		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
+				idUsuario);
+		if (usuarios.isEmpty() || !usuarios.get(0).isAdmin()) {
+			return "No cuentas con permisos para eliminar anuncios";
+		}
+
+		int filaBorrada = jdbcTemplate.update("DELETE FROM juegos WHERE id = ?", idJuego);
+		if (filaBorrada > 0) {
+			return "Se ha borrado el anuncio";
+		} else {
+			return "Error al borrar el anuncio";
+
+		}
 	}
 
 	/**
@@ -158,6 +226,15 @@ public class CompraVentaVideojuegosApplication {
 		// Listamos todos los juegos
 		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where aceptado != true", new LisarJuegos());
 		return listaJuegos;
+	}
+
+	/**
+	 * Listar juegos de mi biblioteca (comprados)
+	 */
+	@GetMapping("/misJuegos/{idUsuario}")
+	public List<Juego> misJuegos(@PathVariable Long idUsuario) {
+		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new LisarJuegos(), idUsuario);
+
 	}
 
 	// ===================== MÉTODOS NO MAPPEADOS ===================== //
