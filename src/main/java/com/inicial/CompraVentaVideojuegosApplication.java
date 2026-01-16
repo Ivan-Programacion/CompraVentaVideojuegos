@@ -144,8 +144,34 @@ public class CompraVentaVideojuegosApplication {
 	@GetMapping("/juegos")
 	public List<Juego> juegos() {
 		// Listamos todos los juegos
-		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where aceptado = true and comprador_id is NULL", new LisarJuegos());
+		List<Juego> listaJuegos = jdbcTemplate
+				.query("select * from juegos where aceptado = true and comprador_id is NULL", new LisarJuegos());
 		return listaJuegos;
+	}
+
+	/**
+	 * Endpoint para subir un juego a la BBDD
+	 */
+
+	@GetMapping("/subirjuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
+	public String subirJuego(@PathVariable int idVendedor, @PathVariable String nombre, @PathVariable String imagen,
+			@PathVariable double precio, @PathVariable String clave) {
+
+		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
+				idVendedor);
+		if (user.isEmpty()) {
+			return "El usuario no ha sido encontrado en la BBDD";
+		}
+
+		try {
+			jdbcTemplate.update(
+					"INSERT INTO juegos(nombre, precio, clave, vendedor_id, aceptado, comprador_id) VALUES (?,?,?,?, false, NULL)",
+					nombre, precio, clave, idVendedor);
+			return "Se ha subido el juego correctamente :)";
+		} catch (Exception e) {
+			return "Ha habido un error al subir el juego" + e.getMessage();
+		}
+
 	}
 
 	/**
