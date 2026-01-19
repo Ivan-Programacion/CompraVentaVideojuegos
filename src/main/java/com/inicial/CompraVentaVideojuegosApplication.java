@@ -27,6 +27,28 @@ public class CompraVentaVideojuegosApplication {
 		SpringApplication.run(CompraVentaVideojuegosApplication.class, args);
 	}
 
+	// Endpoint necesarios:
+	// - registro (admin/usuario) ------------> CHECK
+	// - login (admin/usuario) ------------> CHECK
+	// - accederJuego (datos de juego)
+	// - subirJuego ------------> CHECK - Falta en ADMIN (parametro admin)
+	// - quitarJuego (admin/usuario)
+	//
+	// USUARIO
+	// - listarJuegos (en venta y SIN comprador) ------------> CHECK
+	// - buscarJuego (filtro busqueda)
+	// - comprarCarrito (comprar lista juegos)
+	// - misJuegosComprados ------------> CHECK
+	// - misJuegosEnVenta
+	//
+	// ADMIN
+	// - listarJuegosPendientes ------------> CHECK
+	// - rechazarJuego ------------> CHECK - Falta avisar a usuario
+	// - listarUsuarios
+	// - verUsuario
+	// - juegosCompradosPorUsuario (utilizar misJuegosComprados) --> CHECK
+	// - juegosEnVentaPorUsuario (utilizar misJuegosEnVenta)
+
 	@GetMapping("/crear")
 	public String crearTabla() {
 		// Eliminamos si existen
