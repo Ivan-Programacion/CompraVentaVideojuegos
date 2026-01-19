@@ -147,7 +147,7 @@ public class CompraVentaVideojuegosApplication {
 	 * @return Devuelve true si se ha borrado correctamente, o false si ha habido
 	 *         algún problema y no lo ha borrado
 	 */
-	@GetMapping("/borrarJuego")
+	@GetMapping("/borrarJuego/{idJuego}/{idVendedor}")
 	public boolean borrarJuego(@PathVariable Long idJuego, @PathVariable Long idVendedor) {
 		List<Juego> juegos = jdbcTemplate.query("select * from juegos where id = ? and vendedor_id = ?",
 				new ListarJuegos(), idJuego, idVendedor);
@@ -301,11 +301,14 @@ public class CompraVentaVideojuegosApplication {
 					.println("USUARIO " + idVendedor + " intentó subir un juego --> ERROR: no se ha encontrado usuario");
 			return false; // El usuario no ha sido encontrado en la BBDD
 		}
+		Usuario usuario = user.get(0);
 		boolean admin = true;
 		BigDecimal precioFinal = BigDecimal.valueOf(precio);
 		// Si no es admin, se añade la comisión
-		if (!admin)
+		if (!usuario.isAdmin()) {
+			admin = false;
 			precioFinal = comision(BigDecimal.valueOf(precio));
+		}
 		try {
 			jdbcTemplate.update(
 					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, revisado, comprador_id) VALUES (?,?,?,?,?,?,?, NULL)",
@@ -328,7 +331,7 @@ public class CompraVentaVideojuegosApplication {
 	 * @return Devuelve true si se ha realizado correctamente, o false si no se ha
 	 *         podido realizar
 	 */
-	@GetMapping("/admin/aprobarJuego/{idJuego}/{idUsuario}")
+	@GetMapping("/aprobarJuego/{idJuego}/{idUsuario}")
 	public boolean aprobarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
 		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idUsuario);
@@ -366,7 +369,7 @@ public class CompraVentaVideojuegosApplication {
 	 *         que haya fallado
 	 */
 
-	@GetMapping("/admin/rechazarJuego/{idJuego}/{idUsuario}")
+	@GetMapping("/rechazarJuego/{idJuego}/{idUsuario}")
 	public boolean rechazarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
 		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idUsuario);
