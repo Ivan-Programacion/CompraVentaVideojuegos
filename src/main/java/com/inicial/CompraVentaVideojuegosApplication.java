@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.service.annotation.PatchExchange;
 
 @SpringBootApplication
 @RestController
@@ -31,9 +32,9 @@ public class CompraVentaVideojuegosApplication {
 	// Endpoint necesarios:
 	// - registro (admin/usuario) ------------> CHECK
 	// - login (admin/usuario) ------------> CHECK
-	// - accederJuego (datos de juego)
+	// - datosJuego (datos de juego) ------------> CHECK
 	// - subirJuego ------------> CHECK
-	// - quitarJuego (admin/usuario)
+	// - borrarJuego (admin/usuario) ------------> CHECK
 	//
 	// USUARIO
 	// - listarJuegos (en venta y SIN comprador) ------------> CHECK
@@ -41,10 +42,11 @@ public class CompraVentaVideojuegosApplication {
 	// - comprarCarrito (comprar lista juegos)
 	// - misJuegosComprados ------------> CHECK
 	// - misJuegosEnVenta
+	// - addSaldo
 	//
 	// ADMIN
 	// - listarJuegosPendientes ------------> CHECK
-	// - rechazarJuego ------------> CHECK - Falta avisar a usuario
+	// - rechazarJuego ------------> CHECK
 	// - listarUsuarios
 	// - verUsuario
 	// - juegosCompradosPorUsuario (utilizar misJuegosComprados) --> CHECK
@@ -74,6 +76,47 @@ public class CompraVentaVideojuegosApplication {
 		jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombreTienda, "", 0,
 				true);
 		return "Se han creado las tablas correctamente";
+	}
+
+	/**
+	 * Endpoint que accede a los datos de un juego
+	 * 
+	 * @param idJuego
+	 * @return La instancia del juego si se ha encontrado, o nulo en caso de que no
+	 *         se haya encontrado
+	 */
+	@GetMapping("/datosJuego/{idJuego}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public Juego datosJuego(@PathVariable Long idJuego) {
+		Juego juego = null;
+		List<Juego> juegos = jdbcTemplate.query("select * from juegos where id = ?", new ListarJuegos(), idJuego);
+		if (juegos.isEmpty())
+			return null;
+		juego = juegos.get(0);
+		return juego;
+	}
+
+	/**
+	 * Endpoint que borra un juego
+	 * 
+	 * @param idJuego    ID del juego
+	 * @param idVendedor ID del vendedor del juego
+	 * @return
+	 */
+	@GetMapping("/borrarJuego")
+	public boolean borrarJuego(@PathVariable Long idJuego, @PathVariable Long idVendedor) {
+		List<Juego> juegos = jdbcTemplate.query("select * from juegos where id = ? and vendedor_id = ?",
+				new ListarJuegos(), idJuego, idVendedor);
+		List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
+				idVendedor);
+		if (juegos.isEmpty() || usuarios.isEmpty()) {
+			System.err.println("USUARIO " + idVendedor + " intentó eliminar juego --> ERROR");
+			return false;
+		}
+		Usuario usuario = usuarios.get(0);
+		jdbcTemplate.update("DELETE from juegos where id = ?", idJuego);
+		System.out.println("USUARIO " + usuario.getNombre() + " ha eliminado un juego --> ID: " + idJuego);
+		return true;
 	}
 
 	/**

@@ -17,6 +17,7 @@ public class Juego implements Serializable {
 	private String clave;
 	@JsonIgnore
 	private boolean aceptado;
+	@JsonIgnore
 	private boolean revisado;
 
 	public Juego(Long id, Long vendedor_id, Long comprador_id, String nombre, String imagen, BigDecimal precio,
