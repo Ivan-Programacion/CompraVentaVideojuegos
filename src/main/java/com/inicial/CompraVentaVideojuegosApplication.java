@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -113,6 +114,7 @@ public class CompraVentaVideojuegosApplication {
 	 *         ese nombre
 	 */
 	@GetMapping("/registro/{nombre}/{pwd}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public Usuario registro(@PathVariable String nombre, @PathVariable String pwd) {
 		// Guardamos en una lista todos los usuarios que coincidan con el nombre que se
 		// intenta registrar
@@ -141,6 +143,7 @@ public class CompraVentaVideojuegosApplication {
 	 * @return El usuario si existe. Si no existe, nulo
 	 */
 	@GetMapping("/login/{nombre}/{pwd}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public Usuario login(@PathVariable String nombre, @PathVariable String pwd) {
 		// Guardamos en una lista todos los usuarios que coincidan con el nombre que se
 		// intenta registrar
@@ -165,6 +168,7 @@ public class CompraVentaVideojuegosApplication {
 	 * @return La lista de los juegos APROBADOS y que no han sido comprados
 	 */
 	@GetMapping("/juegos")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public List<Juego> juegos() {
 		// Listamos todos los juegos
 		List<Juego> listaJuegos = jdbcTemplate
@@ -185,12 +189,15 @@ public class CompraVentaVideojuegosApplication {
 	// VER @RequestParam para los parámetros. Evitamos problemas de decimales y
 	// nombres con espacios
 	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
 			@PathVariable double precio, @PathVariable String clave) {
 
 		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idVendedor);
 		if (user.isEmpty()) {
+			System.err
+					.println("USUARIO " + idVendedor + "intentó subir un juego --> ERROR: no se ha encontrado usuario");
 			return false; // El usuario no ha sido encontrado en la BBDD
 		}
 		Usuario usuario = user.get(0);
@@ -199,20 +206,20 @@ public class CompraVentaVideojuegosApplication {
 		// Si es admin, añadimos el nombre de la tienda y en el insert añadimos
 		// "aceptado" a true con la variable admin
 		if (usuario.isAdmin()) {
-			user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = 1", new ListarUsuarios());
-			nombreFinal = user.get(0).getNombre();
+			nombreFinal = usuario.getNombre();
 		} else {
 			nombreFinal = nombre;
 			admin = false;
 		}
 		try {
 			jdbcTemplate.update(
-					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, comprador_id) VALUES (?,?,?,?,?,?, NULL)",
-					nombreFinal, imagen, precio, clave, idVendedor, admin); // Si es admin devuelve true, si es usuario
-																			// devuelve false
+					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, comprador_id) VALUES (?,?,?,?,?,?,?, NULL)",
+					nombreFinal, imagen, precio, clave, idVendedor, admin, admin); // Si es admin devuelve true, si es
+																					// usuario devuelve false
+			System.out.println("USUARIO " + idVendedor + " ha subido un juego");
 			return true; // Se ha subido el juego correctamente :
 		} catch (Exception e) {
-			System.err.println("Ha habido un error al subir el juego" + e.getMessage());
+			System.err.println("USUARIO " + idVendedor + "intentó subir un juego --> ERROR: " + e.getMessage());
 			return false;
 		}
 
@@ -220,36 +227,42 @@ public class CompraVentaVideojuegosApplication {
 
 	/**
 	 * Endpoint que aprueba un juego desde admin
+	 * 
 	 * @param idJuego
 	 * @param idUsuario
-	 * @return Devuelve true si se ha realizado correctamente, o false si no se ha podido realizar
+	 * @return Devuelve true si se ha realizado correctamente, o false si no se ha
+	 *         podido realizar
 	 */
 	@GetMapping("/admin/aprobarJuego/{idJuego}/{idUsuario}")
 	public boolean aprobarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
 		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idUsuario);
 		if (usuarios.isEmpty() || !usuarios.get(0).isAdmin()) {
+			System.err.println("USUARIO " + idUsuario + "intentó aprobar un juego --> ERROR: NO ES ADMIN");
 			return false; // No cuentas con permisos para aprobar anuncios
 		}
-		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(),
-				idJuego);
+		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(), idJuego);
 		Juego juego = juegos.get(0);
-		if(!juego.isRevisado()) {
+		if (!juego.isRevisado()) {
 			int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = true, revisado = true WHERE id = ?", idJuego);
 			if (fila > 0) {
+				System.out.println("Juego aprobado por admin --> ID JUEGO: " + idJuego);
 				return true; // Juego aprobado
 			} else {
+				System.err.println("Intento de subir juego por admin -->ERROR: ID JUEGO: " + idJuego);
 				return false; // Ha ocurrido un error al aprobar el juego
 			}
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Endpoint que realizara la acción de rechazar un juego desde admin
+	 * 
 	 * @param idJuego
 	 * @param idUsuario
-	 * @return Devuelve true si lo ha realizado correctamente, o false en caos de que haya fallado
+	 * @return Devuelve true si lo ha realizado correctamente, o false en caos de
+	 *         que haya fallado
 	 */
 
 	@GetMapping("/admin/rechazarJuego/{idJuego}/{idUsuario}")
@@ -257,16 +270,18 @@ public class CompraVentaVideojuegosApplication {
 		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idUsuario);
 		if (usuarios.isEmpty() || !usuarios.get(0).isAdmin()) {
+			System.err.println("USUARIO " + idUsuario + "intentó rechazar un juego --> ERROR: NO ES ADMIN");
 			return false; // No cuentas con permisos para aprobar anuncios
 		}
-		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(),
-				idJuego);
+		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(), idJuego);
 		Juego juego = juegos.get(0);
-		if(!juego.isRevisado()) {
+		if (!juego.isRevisado()) {
 			int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = false, revisado = true WHERE id = ?", idJuego);
 			if (fila > 0) {
+				System.out.println("Juego rechazado por admin --> ID JUEGO: " + idJuego);
 				return true; // Se ha borrado el anuncio
 			} else {
+				System.err.println("Intento de subir juego por admin -->ERROR: ID JUEGO: " + idJuego);
 				return false; // Error al borrar el anuncio
 			}
 		}
@@ -289,6 +304,7 @@ public class CompraVentaVideojuegosApplication {
 	 * Listar juegos de mi biblioteca (comprados)
 	 */
 	@GetMapping("/misJuegos/{idUsuario}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public List<Juego> misJuegos(@PathVariable Long idUsuario) {
 		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new ListarJuegos(), idUsuario);
 
