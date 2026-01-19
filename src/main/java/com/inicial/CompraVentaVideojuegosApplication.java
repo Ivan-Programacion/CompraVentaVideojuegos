@@ -41,7 +41,7 @@ public class CompraVentaVideojuegosApplication {
 	// - buscarJuego (filtro busqueda)
 	// - comprarCarrito (comprar lista juegos)
 	// - misJuegosComprados ------------> CHECK
-	// - misJuegosEnVenta
+	// - misJuegosEnVenta ------------> CHECK
 	// - addSaldo
 	//
 	// ADMIN
@@ -346,11 +346,24 @@ public class CompraVentaVideojuegosApplication {
 	/**
 	 * Listar juegos de mi biblioteca (comprados)
 	 */
-	@GetMapping("/misJuegos/{idUsuario}")
+	@GetMapping("/misJuegosComprados/{idUsuario}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
-	public List<Juego> misJuegos(@PathVariable Long idUsuario) {
+	public List<Juego> misJuegosComprados(@PathVariable Long idUsuario) {
 		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new ListarJuegos(), idUsuario);
 
+	}
+
+	/**
+	 * Endpoint que devuelve la lista de juegos en venta de un usuario
+	 * (independientemente de que estén aceptados, pendientes o rechazados)
+	 * 
+	 * @param idUsuario
+	 * @return
+	 */
+	@GetMapping("/misJuegosEnVenta/{idUsuario}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public List<Juego> misJuegosEnVenta(@PathVariable Long idUsuario) {
+		return jdbcTemplate.query("SELECT * FROM juegos WHERE vendedor_id", new ListarJuegos(), idUsuario);
 	}
 
 	// ===================== MÉTODOS NO MAPPEADOS ===================== //
