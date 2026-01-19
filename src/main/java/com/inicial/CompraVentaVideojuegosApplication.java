@@ -65,6 +65,7 @@ public class CompraVentaVideojuegosApplication {
 				+ "                    precio DECIMAL(10, 2) NOT NULL,\n"
 				+ "                    clave VARCHAR(255) NOT NULL UNIQUE,\n"
 				+ "                    aceptado BOOLEAN DEFAULT FALSE,\n"
+				+ "                    revisado BOOLEAN DEFAULT FALSE,\n"
 				+ "                    vendedor_id BIGINT NOT NULL,\n"
 				+ "                    comprador_id BIGINT DEFAULT NULL,\n"
 				+ "                    CONSTRAINT fk_vendedor FOREIGN KEY (vendedor_id) REFERENCES usuarios(id) ON DELETE CASCADE,\n"
@@ -167,7 +168,7 @@ public class CompraVentaVideojuegosApplication {
 	public List<Juego> juegos() {
 		// Listamos todos los juegos
 		List<Juego> listaJuegos = jdbcTemplate
-				.query("select * from juegos where aceptado = true and comprador_id is NULL", new LisarJuegos());
+				.query("select * from juegos where aceptado = true and comprador_id is NULL", new ListarJuegos());
 		return listaJuegos;
 	}
 
@@ -230,13 +231,18 @@ public class CompraVentaVideojuegosApplication {
 		if (usuarios.isEmpty() || !usuarios.get(0).isAdmin()) {
 			return false; // No cuentas con permisos para aprobar anuncios
 		}
-
-		int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = true WHERE id = ?", idJuego);
-		if (fila > 0) {
-			return true; // Juego aprobado
-		} else {
-			return false; // Ha ocurrido un error al aprobar el juego
+		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(),
+				idJuego);
+		Juego juego = juegos.get(0);
+		if(!juego.isRevisado()) {
+			int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = true, revisado = true WHERE id = ?", idJuego);
+			if (fila > 0) {
+				return true; // Juego aprobado
+			} else {
+				return false; // Ha ocurrido un error al aprobar el juego
+			}
 		}
+		return false;
 	}
 	
 	/**
@@ -256,13 +262,15 @@ public class CompraVentaVideojuegosApplication {
 		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(),
 				idJuego);
 		Juego juego = juegos.get(0);
-		int filaBorrada = jdbcTemplate.update("DELETE FROM juegos WHERE id = ?", idJuego);
-		if (filaBorrada > 0) {
-			return true; // Se ha borrado el anuncio
-		} else {
-			return false; // Error al borrar el anuncio
-
+		if(!juego.isRevisado()) {
+			int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = false, revisado = true WHERE id = ?", idJuego);
+			if (fila > 0) {
+				return true; // Se ha borrado el anuncio
+			} else {
+				return false; // Error al borrar el anuncio
+			}
 		}
+		return false;
 	}
 
 	/**
@@ -273,7 +281,7 @@ public class CompraVentaVideojuegosApplication {
 	@GetMapping("/juegosPendientes")
 	public List<Juego> juegosPendientes() {
 		// Listamos todos los juegos
-		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where aceptado != true", new LisarJuegos());
+		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where revisado = false", new ListarJuegos());
 		return listaJuegos;
 	}
 
@@ -282,7 +290,7 @@ public class CompraVentaVideojuegosApplication {
 	 */
 	@GetMapping("/misJuegos/{idUsuario}")
 	public List<Juego> misJuegos(@PathVariable Long idUsuario) {
-		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new LisarJuegos(), idUsuario);
+		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new ListarJuegos(), idUsuario);
 
 	}
 

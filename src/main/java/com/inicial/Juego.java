@@ -17,9 +17,10 @@ public class Juego implements Serializable {
 	private String clave;
 	@JsonIgnore
 	private boolean aceptado;
+	private boolean revisado;
 
 	public Juego(Long id, Long vendedor_id, Long comprador_id, String nombre, String imagen, BigDecimal precio,
-			String clave, boolean aceptado) {
+			String clave, boolean aceptado, boolean revisado) {
 		this.id = id;
 		this.vendedor_id = vendedor_id;
 		this.comprador_id = comprador_id;
@@ -28,6 +29,7 @@ public class Juego implements Serializable {
 		this.precio = precio;
 		this.clave = clave;
 		this.aceptado = aceptado;
+		this.revisado = revisado;
 	}
 
 	public Long getId() {
@@ -92,6 +94,14 @@ public class Juego implements Serializable {
 
 	public void setAceptado(boolean aceptado) {
 		this.aceptado = aceptado;
+	}
+
+	public boolean isRevisado() {
+		return revisado;
+	}
+
+	public void setRevisado(boolean revisado) {
+		this.revisado = revisado;
 	}
 
 	@Override

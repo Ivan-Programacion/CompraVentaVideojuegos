@@ -12,7 +12,7 @@ public class ListarJuegos implements RowMapper<Juego> {
 		// Mapear uno a uno los usuarios
 		Juego juegos = new Juego(rs.getLong("id"), rs.getLong("vendedor_id"), rs.getLong("comprador_id"),
 				rs.getString("nombre"), rs.getString("imagen"), rs.getBigDecimal("precio"), rs.getString("clave"),
-				rs.getBoolean("aceptado"));
+				rs.getBoolean("aceptado"), rs.getBoolean("revisado"));
 		return juegos;
 	}
 
