@@ -43,7 +43,6 @@ public class CompraVentaVideojuegosApplication {
 	//
 	// USUARIO
 	// - listarJuegos (en venta y SIN comprador) ------------> CHECK
-	// - buscarJuego (filtro busqueda)
 	// - comprarCarrito (comprar lista juegos)
 	// - misJuegosComprados ------------> CHECK
 	// - misJuegosEnVenta ------------> CHECK
@@ -52,6 +51,11 @@ public class CompraVentaVideojuegosApplication {
 	// ADMIN
 	// - listarJuegosPendientes ------------> CHECK
 	// - rechazarJuego ------------> CHECK
+	//
+	// ===== OPCIONALES =====
+	// USUARIO
+	// - buscarJuego (filtro busqueda)
+	// ADMIN
 	// - listarUsuarios
 	// - verUsuario
 	// - juegosCompradosPorUsuario (utilizar misJuegosComprados) --> CHECK
@@ -288,39 +292,29 @@ public class CompraVentaVideojuegosApplication {
 	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
-			@PathVariable BigDecimal precio, @PathVariable String clave) {
+			@PathVariable double precio, @PathVariable String clave) {
 
 		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idVendedor);
 		if (user.isEmpty()) {
 			System.err
-					.println("USUARIO " + idVendedor + "intentó subir un juego --> ERROR: no se ha encontrado usuario");
+					.println("USUARIO " + idVendedor + " intentó subir un juego --> ERROR: no se ha encontrado usuario");
 			return false; // El usuario no ha sido encontrado en la BBDD
 		}
-		Usuario usuario = user.get(0);
 		boolean admin = true;
-		String nombreFinal = "";
-		// Si es admin, añadimos el nombre de la tienda y en el insert añadimos
-		// "aceptado" a true con la variable admin
-		if (usuario.isAdmin()) {
-			nombreFinal = NOMBRE_TIENDA;
-		} else {
-			nombreFinal = nombre;
-			admin = false;
-		}
-		BigDecimal precioFinal = precio;
+		BigDecimal precioFinal = BigDecimal.valueOf(precio);
 		// Si no es admin, se añade la comisión
 		if (!admin)
-			precioFinal = comision(precio);
+			precioFinal = comision(BigDecimal.valueOf(precio));
 		try {
 			jdbcTemplate.update(
-					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, comprador_id) VALUES (?,?,?,?,?,?,?, NULL)",
-					nombreFinal, imagen, precioFinal, clave, idVendedor, admin, admin); // Si es admin devuelve true, si es
+					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, revisado, comprador_id) VALUES (?,?,?,?,?,?,?, NULL)",
+					nombre, imagen, precioFinal, clave, idVendedor, admin, admin); // Si es admin devuelve true, si es
 																					// usuario devuelve false
 			System.out.println("USUARIO " + idVendedor + " ha subido un juego");
 			return true; // Se ha subido el juego correctamente :
 		} catch (Exception e) {
-			System.err.println("USUARIO " + idVendedor + "intentó subir un juego --> ERROR: " + e.getMessage());
+			System.err.println("USUARIO " + idVendedor + " intentó subir un juego --> ERROR: " + e.getMessage());
 			return false;
 		}
 
