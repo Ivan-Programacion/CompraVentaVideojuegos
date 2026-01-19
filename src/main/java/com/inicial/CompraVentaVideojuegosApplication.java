@@ -1,5 +1,6 @@
 package com.inicial;
 
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
@@ -42,7 +43,7 @@ public class CompraVentaVideojuegosApplication {
 	// - comprarCarrito (comprar lista juegos)
 	// - misJuegosComprados ------------> CHECK
 	// - misJuegosEnVenta ------------> CHECK
-	// - addSaldo
+	// - addSaldo ------------> CHECK
 	//
 	// ADMIN
 	// - listarJuegosPendientes ------------> CHECK
@@ -79,6 +80,40 @@ public class CompraVentaVideojuegosApplication {
 	}
 
 	/**
+	 * Endpoint que añade saldo a la cuenta
+	 * 
+	 * @param idUsuario
+	 * @param saldo
+	 * @return Devuelve true si lo ha añadido correctamente, o false si ha habido
+	 *         algún problema y no lo ha actualizado
+	 */
+	@GetMapping("/addSaldo/{idUsuario}/{saldo}")
+	public boolean addSaldo(@PathVariable Long idUsuario, @PathVariable BigDecimal saldo) {
+		List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
+				idUsuario);
+		if (usuarios.isEmpty())
+			return false;
+		Usuario usuario = usuarios.get(0);
+		// Si el saldo es menor o igual a cero
+		if (saldo.compareTo(BigDecimal.ZERO) <= 0) {
+			System.err.println("USUARIO " + idUsuario + "intentó añadir saldo --> ERROR: no se ha encontrado usuario");
+			return false;
+		}
+		// saldoUsuario += saldo
+		usuario.setSaldo(usuario.getSaldo().add(saldo));
+		int fila = jdbcTemplate.update("update usuarios set saldo = ? where id = ?", usuario.getSaldo(),
+				usuario.getId());
+		if (fila > 0) {
+			System.out.println("USUARIO " + idUsuario + " ha añadido saldo --> " + saldo + "€");
+			return true;
+		} else {
+			System.err.println(
+					"USUARIO " + idUsuario + "intentó añadir saldo --> ERROR: no se ha actualizado correctamente");
+			return false;
+		}
+	}
+
+	/**
 	 * Endpoint que accede a los datos de un juego
 	 * 
 	 * @param idJuego
@@ -101,7 +136,8 @@ public class CompraVentaVideojuegosApplication {
 	 * 
 	 * @param idJuego    ID del juego
 	 * @param idVendedor ID del vendedor del juego
-	 * @return
+	 * @return Devuelve true si se ha borrado correctamente, o false si ha habido
+	 *         algún problema y no lo ha borrado
 	 */
 	@GetMapping("/borrarJuego")
 	public boolean borrarJuego(@PathVariable Long idJuego, @PathVariable Long idVendedor) {
