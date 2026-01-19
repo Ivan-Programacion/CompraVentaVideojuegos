@@ -31,7 +31,7 @@ public class CompraVentaVideojuegosApplication {
 	// - registro (admin/usuario) ------------> CHECK
 	// - login (admin/usuario) ------------> CHECK
 	// - accederJuego (datos de juego)
-	// - subirJuego ------------> CHECK - Falta en ADMIN (parametro admin)
+	// - subirJuego ------------> CHECK
 	// - quitarJuego (admin/usuario)
 	//
 	// USUARIO
@@ -64,7 +64,7 @@ public class CompraVentaVideojuegosApplication {
 				+ "                    nombre VARCHAR(150) NOT NULL,\n" + "                    imagen VARCHAR(255),\n"
 				+ "                    precio DECIMAL(10, 2) NOT NULL,\n"
 				+ "                    clave VARCHAR(255) NOT NULL UNIQUE,\n"
-				+ "                    aceptado BOOLEAN DEFAULT FALSE,\n"
+				+ "                    aceptado BOOLEAN DEFAULT NULL,\n"
 				+ "                    vendedor_id BIGINT NOT NULL,\n"
 				+ "                    comprador_id BIGINT DEFAULT NULL,\n"
 				+ "                    CONSTRAINT fk_vendedor FOREIGN KEY (vendedor_id) REFERENCES usuarios(id) ON DELETE CASCADE,\n"
@@ -172,68 +172,95 @@ public class CompraVentaVideojuegosApplication {
 	}
 
 	/**
-	 * Endpoint para subir un juego a la BBDD
+	 * Endpoint para subir un juego a la BBDD.
+	 * 
+	 * @param idVendedor
+	 * @param nombre
+	 * @param imagen
+	 * @param precio
+	 * @param clave
+	 * @return Devuelve true si se ha podido realizar o false si no se ha realizado
 	 */
-
 	// VER @RequestParam para los parámetros. Evitamos problemas de decimales y
 	// nombres con espacios
-	@GetMapping("/subirjuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
-	public String subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
+	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
+	public boolean subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
 			@PathVariable double precio, @PathVariable String clave) {
 
 		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idVendedor);
 		if (user.isEmpty()) {
-			return "El usuario no ha sido encontrado en la BBDD";
+			return false; // El usuario no ha sido encontrado en la BBDD
 		}
-
+		Usuario usuario = user.get(0);
+		boolean admin = true;
+		String nombreFinal = "";
+		// Si es admin, añadimos el nombre de la tienda y en el insert añadimos
+		// "aceptado" a true con la variable admin
+		if (usuario.isAdmin()) {
+			user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = 1", new ListarUsuarios());
+			nombreFinal = user.get(0).getNombre();
+		} else {
+			nombreFinal = nombre;
+			admin = false;
+		}
 		try {
 			jdbcTemplate.update(
-					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, comprador_id) VALUES (?,?,?,?,?, false, NULL)",
-					nombre, imagen, precio, clave, idVendedor);
-			return "Se ha subido el juego correctamente :)";
+					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, comprador_id) VALUES (?,?,?,?,?,?, NULL)",
+					nombreFinal, imagen, precio, clave, idVendedor, admin); // Si es admin devuelve true, si es usuario
+																			// devuelve false
+			return true; // Se ha subido el juego correctamente :
 		} catch (Exception e) {
-			return "Ha habido un error al subir el juego" + e.getMessage();
+			System.err.println("Ha habido un error al subir el juego" + e.getMessage());
+			return false;
 		}
 
 	}
 
 	/**
-	 * Método para aprobar anuncios desde admin
+	 * Endpoint que aprueba un juego desde admin
+	 * @param idJuego
+	 * @param idUsuario
+	 * @return Devuelve true si se ha realizado correctamente, o false si no se ha podido realizar
 	 */
 	@GetMapping("/admin/aprobarJuego/{idJuego}/{idUsuario}")
-	public String aprobarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
+	public boolean aprobarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
 		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idUsuario);
 		if (usuarios.isEmpty() || !usuarios.get(0).isAdmin()) {
-			return "No cuentas con permisos para aprobar anuncios";
+			return false; // No cuentas con permisos para aprobar anuncios
 		}
 
 		int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = true WHERE id = ?", idJuego);
 		if (fila > 0) {
-			return "Juego aprobado";
+			return true; // Juego aprobado
 		} else {
-			return "Ha ocurrido un error al aprobar el juego";
+			return false; // Ha ocurrido un error al aprobar el juego
 		}
 	}
-
+	
 	/**
-	 * Método para rechazar anuncios desde admin
+	 * Endpoint que realizara la acción de rechazar un juego desde admin
+	 * @param idJuego
+	 * @param idUsuario
+	 * @return Devuelve true si lo ha realizado correctamente, o false en caos de que haya fallado
 	 */
 
 	@GetMapping("/admin/rechazarJuego/{idJuego}/{idUsuario}")
-	public String rechazarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
+	public boolean rechazarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
 		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idUsuario);
 		if (usuarios.isEmpty() || !usuarios.get(0).isAdmin()) {
-			return "No cuentas con permisos para eliminar anuncios";
+			return false; // No cuentas con permisos para aprobar anuncios
 		}
-
+		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(),
+				idJuego);
+		Juego juego = juegos.get(0);
 		int filaBorrada = jdbcTemplate.update("DELETE FROM juegos WHERE id = ?", idJuego);
 		if (filaBorrada > 0) {
-			return "Se ha borrado el anuncio";
+			return true; // Se ha borrado el anuncio
 		} else {
-			return "Error al borrar el anuncio";
+			return false; // Error al borrar el anuncio
 
 		}
 	}
