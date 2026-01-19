@@ -1,5 +1,6 @@
 package com.inicial;
 
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.List;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,11 +18,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class CompraVentaVideojuegosApplication {
 
 	private final JdbcTemplate jdbcTemplate;
-	private final String nombreTienda;
+	private final Long ID_TIENDA;
+	private final String NOMBRE_TIENDA;
+	private final BigDecimal COMISION;
 
 	public CompraVentaVideojuegosApplication(JdbcTemplate jdbcTemplate) {
 		this.jdbcTemplate = jdbcTemplate;
-		nombreTienda = "RetroGames";
+		ID_TIENDA = 1L;
+		NOMBRE_TIENDA = "RetroGames";
+		COMISION = new BigDecimal("0.1");
+
 	}
 
 	public static void main(String[] args) {
@@ -30,20 +37,25 @@ public class CompraVentaVideojuegosApplication {
 	// Endpoint necesarios:
 	// - registro (admin/usuario) ------------> CHECK
 	// - login (admin/usuario) ------------> CHECK
-	// - accederJuego (datos de juego)
-	// - subirJuego ------------> CHECK - Falta en ADMIN (parametro admin)
-	// - quitarJuego (admin/usuario)
+	// - datosJuego (datos de juego) ------------> CHECK
+	// - subirJuego ------------> CHECK
+	// - borrarJuego (admin/usuario) ------------> CHECK
 	//
 	// USUARIO
 	// - listarJuegos (en venta y SIN comprador) ------------> CHECK
-	// - buscarJuego (filtro busqueda)
 	// - comprarCarrito (comprar lista juegos)
 	// - misJuegosComprados ------------> CHECK
-	// - misJuegosEnVenta
+	// - misJuegosEnVenta ------------> CHECK
+	// - addSaldo ------------> CHECK
 	//
 	// ADMIN
 	// - listarJuegosPendientes ------------> CHECK
-	// - rechazarJuego ------------> CHECK - Falta avisar a usuario
+	// - rechazarJuego ------------> CHECK
+	//
+	// ===== OPCIONALES =====
+	// USUARIO
+	// - buscarJuego (filtro busqueda)
+	// ADMIN
 	// - listarUsuarios
 	// - verUsuario
 	// - juegosCompradosPorUsuario (utilizar misJuegosComprados) --> CHECK
@@ -65,13 +77,90 @@ public class CompraVentaVideojuegosApplication {
 				+ "                    precio DECIMAL(10, 2) NOT NULL,\n"
 				+ "                    clave VARCHAR(255) NOT NULL UNIQUE,\n"
 				+ "                    aceptado BOOLEAN DEFAULT FALSE,\n"
+				+ "                    revisado BOOLEAN DEFAULT FALSE,\n"
 				+ "                    vendedor_id BIGINT NOT NULL,\n"
 				+ "                    comprador_id BIGINT DEFAULT NULL,\n"
 				+ "                    CONSTRAINT fk_vendedor FOREIGN KEY (vendedor_id) REFERENCES usuarios(id) ON DELETE CASCADE,\n"
 				+ "                    CONSTRAINT fk_comprador FOREIGN KEY (comprador_id) REFERENCES usuarios(id) ON DELETE SET NULL)");
-		jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombreTienda, "", 0,
+		jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", NOMBRE_TIENDA, "", 0,
 				true);
 		return "Se han creado las tablas correctamente";
+	}
+
+	/**
+	 * Endpoint que añade saldo a la cuenta
+	 * 
+	 * @param idUsuario
+	 * @param saldo
+	 * @return Devuelve true si lo ha añadido correctamente, o false si ha habido
+	 *         algún problema y no lo ha actualizado
+	 */
+	@GetMapping("/addSaldo/{idUsuario}/{saldo}")
+	public boolean addSaldo(@PathVariable Long idUsuario, @PathVariable BigDecimal saldo) {
+		List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
+				idUsuario);
+		if (usuarios.isEmpty())
+			return false;
+		Usuario usuario = usuarios.get(0);
+		// Si el saldo es menor o igual a cero
+		if (saldo.compareTo(BigDecimal.ZERO) <= 0) {
+			System.err.println("USUARIO " + idUsuario + "intentó añadir saldo --> ERROR: no se ha encontrado usuario");
+			return false;
+		}
+		// saldoUsuario += saldo
+		usuario.setSaldo(usuario.getSaldo().add(saldo));
+		int fila = jdbcTemplate.update("update usuarios set saldo = ? where id = ?", usuario.getSaldo(),
+				usuario.getId());
+		if (fila > 0) {
+			System.out.println("USUARIO " + idUsuario + " ha añadido saldo --> " + saldo + "€");
+			return true;
+		} else {
+			System.err.println(
+					"USUARIO " + idUsuario + "intentó añadir saldo --> ERROR: no se ha actualizado correctamente");
+			return false;
+		}
+	}
+
+	/**
+	 * Endpoint que accede a los datos de un juego
+	 * 
+	 * @param idJuego
+	 * @return La instancia del juego si se ha encontrado, o nulo en caso de que no
+	 *         se haya encontrado
+	 */
+	@GetMapping("/datosJuego/{idJuego}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public Juego datosJuego(@PathVariable Long idJuego) {
+		Juego juego = null;
+		List<Juego> juegos = jdbcTemplate.query("select * from juegos where id = ?", new ListarJuegos(), idJuego);
+		if (juegos.isEmpty())
+			return null;
+		juego = juegos.get(0);
+		return juego;
+	}
+
+	/**
+	 * Endpoint que borra un juego
+	 * 
+	 * @param idJuego    ID del juego
+	 * @param idVendedor ID del vendedor del juego
+	 * @return Devuelve true si se ha borrado correctamente, o false si ha habido
+	 *         algún problema y no lo ha borrado
+	 */
+	@GetMapping("/borrarJuego/{idJuego}/{idVendedor}")
+	public boolean borrarJuego(@PathVariable Long idJuego, @PathVariable Long idVendedor) {
+		List<Juego> juegos = jdbcTemplate.query("select * from juegos where id = ? and vendedor_id = ?",
+				new ListarJuegos(), idJuego, idVendedor);
+		List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
+				idVendedor);
+		if (juegos.isEmpty() || usuarios.isEmpty()) {
+			System.err.println("USUARIO " + idVendedor + " intentó eliminar juego --> ERROR");
+			return false;
+		}
+		Usuario usuario = usuarios.get(0);
+		jdbcTemplate.update("DELETE from juegos where id = ?", idJuego);
+		System.out.println("USUARIO " + usuario.getNombre() + " ha eliminado un juego --> ID: " + idJuego);
+		return true;
 	}
 
 	/**
@@ -91,15 +180,22 @@ public class CompraVentaVideojuegosApplication {
 		// Si la lista de usuarios está vacía, significa que no existe ningún usuario
 		// con ese nombre
 		if (listaUsuarios.isEmpty()) {
-			// Creamos el usuario y lo devolvemos en el return
-			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
-					hashearPwd(pwd), 0, true);
-			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
-			System.out.println("ADMIN REGISTRADO " + listaUsuarios.toString()); // LOG
-			Usuario adminNuevo = listaUsuarios.get(0);
-			return adminNuevo;
+			try {
+				// Creamos el usuario y lo devolvemos en el return
+				jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
+						hashearPwd(pwd), 0, true);
+				listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(),
+						nombre);
+				System.out.println("ADMIN REGISTRADO " + listaUsuarios.toString()); // LOG
+				Usuario adminNuevo = listaUsuarios.get(0);
+				return adminNuevo;
+			} catch (Exception e) {
+				System.out.println("REGISTRO fallido");
+				return null;
+			}
 		}
 		// Si ya existe el usuario, devolvemos null
+		System.out.println("REGISTRO fallido");
 		return null;
 	}
 
@@ -112,6 +208,7 @@ public class CompraVentaVideojuegosApplication {
 	 *         ese nombre
 	 */
 	@GetMapping("/registro/{nombre}/{pwd}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public Usuario registro(@PathVariable String nombre, @PathVariable String pwd) {
 		// Guardamos en una lista todos los usuarios que coincidan con el nombre que se
 		// intenta registrar
@@ -120,15 +217,22 @@ public class CompraVentaVideojuegosApplication {
 		// Si la lista de usuarios está vacía, significa que no existe ningún usuario
 		// con ese nombre
 		if (listaUsuarios.isEmpty()) {
-			// Creamos el usuario y lo devolvemos en el return
-			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
-					hashearPwd(pwd), 0, false);
-			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
-			System.out.println("REGISTRO NUEVO: " + listaUsuarios.toString()); // LOG
-			Usuario usuarioNuevo = listaUsuarios.get(0);
-			return usuarioNuevo;
+			try {
+				// Creamos el usuario y lo devolvemos en el return
+				jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
+						hashearPwd(pwd), 0, false);
+				listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(),
+						nombre);
+				System.out.println("REGISTRO NUEVO: " + listaUsuarios.toString()); // LOG
+				Usuario usuarioNuevo = listaUsuarios.get(0);
+				return usuarioNuevo;
+			} catch (Exception e) {
+				System.out.println("REGISTRO fallido");
+				return null;
+			}
 		}
 		// Si ya existe el usuario, devolvemos null
+		System.out.println("REGISTRO fallido");
 		return null;
 	}
 
@@ -140,6 +244,7 @@ public class CompraVentaVideojuegosApplication {
 	 * @return El usuario si existe. Si no existe, nulo
 	 */
 	@GetMapping("/login/{nombre}/{pwd}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public Usuario login(@PathVariable String nombre, @PathVariable String pwd) {
 		// Guardamos en una lista todos los usuarios que coincidan con el nombre que se
 		// intenta registrar
@@ -164,78 +269,127 @@ public class CompraVentaVideojuegosApplication {
 	 * @return La lista de los juegos APROBADOS y que no han sido comprados
 	 */
 	@GetMapping("/juegos")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public List<Juego> juegos() {
 		// Listamos todos los juegos
 		List<Juego> listaJuegos = jdbcTemplate
-				.query("select * from juegos where aceptado = true and comprador_id is NULL", new LisarJuegos());
+				.query("select * from juegos where aceptado = true and comprador_id is NULL", new ListarJuegos());
 		return listaJuegos;
 	}
 
 	/**
-	 * Endpoint para subir un juego a la BBDD
+	 * Endpoint para subir un juego a la BBDD.
+	 * 
+	 * @param idVendedor
+	 * @param nombre
+	 * @param imagen
+	 * @param precio
+	 * @param clave
+	 * @return Devuelve true si se ha podido realizar o false si no se ha realizado
 	 */
-
 	// VER @RequestParam para los parámetros. Evitamos problemas de decimales y
 	// nombres con espacios
-	@GetMapping("/subirjuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
-	public String subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
+	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public boolean subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
 			@PathVariable double precio, @PathVariable String clave) {
 
 		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idVendedor);
 		if (user.isEmpty()) {
-			return "El usuario no ha sido encontrado en la BBDD";
+			System.err
+					.println("USUARIO " + idVendedor + " intentó subir un juego --> ERROR: no se ha encontrado usuario");
+			return false; // El usuario no ha sido encontrado en la BBDD
 		}
-
+		Usuario usuario = user.get(0);
+		boolean admin = true;
+		BigDecimal precioFinal = BigDecimal.valueOf(precio);
+		// Si no es admin, se añade la comisión
+		if (!usuario.isAdmin()) {
+			admin = false;
+			precioFinal = comision(BigDecimal.valueOf(precio));
+		}
 		try {
 			jdbcTemplate.update(
-					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, comprador_id) VALUES (?,?,?,?,?, false, NULL)",
-					nombre, imagen, precio, clave, idVendedor);
-			return "Se ha subido el juego correctamente :)";
+					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, revisado, comprador_id) VALUES (?,?,?,?,?,?,?, NULL)",
+					nombre, imagen, precioFinal, clave, idVendedor, admin, admin); // Si es admin devuelve true, si es
+																					// usuario devuelve false
+			System.out.println("USUARIO " + idVendedor + " ha subido un juego");
+			return true; // Se ha subido el juego correctamente :
 		} catch (Exception e) {
-			return "Ha habido un error al subir el juego" + e.getMessage();
+			System.err.println("USUARIO " + idVendedor + " intentó subir un juego --> ERROR: " + e.getMessage());
+			return false;
 		}
 
 	}
 
 	/**
-	 * Método para aprobar anuncios desde admin
+	 * Endpoint que aprueba un juego desde admin
+	 * 
+	 * @param idJuego
+	 * @param idUsuario
+	 * @return Devuelve true si se ha realizado correctamente, o false si no se ha
+	 *         podido realizar
 	 */
-	@GetMapping("/admin/aprobarJuego/{idJuego}/{idUsuario}")
-	public String aprobarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
+	@GetMapping("/aprobarJuego/{idJuego}/{idUsuario}")
+	public boolean aprobarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
 		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idUsuario);
 		if (usuarios.isEmpty() || !usuarios.get(0).isAdmin()) {
-			return "No cuentas con permisos para aprobar anuncios";
+			System.err.println("USUARIO " + idUsuario + "intentó aprobar un juego --> ERROR: NO ES ADMIN");
+			return false; // No cuentas con permisos para aprobar anuncios
 		}
-
-		int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = true WHERE id = ?", idJuego);
-		if (fila > 0) {
-			return "Juego aprobado";
-		} else {
-			return "Ha ocurrido un error al aprobar el juego";
+		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(), idJuego);
+		Juego juego = juegos.get(0);
+		if (!juego.isRevisado()) {
+			try {
+				int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = true, revisado = true WHERE id = ?",
+						idJuego);
+				if (fila > 0) {
+					System.out.println("Juego aprobado por admin --> ID JUEGO: " + idJuego);
+					return true; // Juego aprobado
+				} else {
+					System.err.println("Intento de subir juego por admin -->ERROR: ID JUEGO: " + idJuego);
+					return false; // Ha ocurrido un error al aprobar el juego
+				}
+			} catch (Exception e) {
+				System.err.println("Intento de subir juego por admin -->ERROR: ID JUEGO: " + idJuego);
+				return false; // Ha ocurrido un error al aprobar el juego
+			}
 		}
+		return false;
 	}
 
 	/**
-	 * Método para rechazar anuncios desde admin
+	 * Endpoint que realizara la acción de rechazar un juego desde admin
+	 * 
+	 * @param idJuego
+	 * @param idUsuario
+	 * @return Devuelve true si lo ha realizado correctamente, o false en caos de
+	 *         que haya fallado
 	 */
 
-	@GetMapping("/admin/rechazarJuego/{idJuego}/{idUsuario}")
-	public String rechazarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
+	@GetMapping("/rechazarJuego/{idJuego}/{idUsuario}")
+	public boolean rechazarJuego(@PathVariable Long idJuego, @PathVariable Long idUsuario) {
 		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idUsuario);
 		if (usuarios.isEmpty() || !usuarios.get(0).isAdmin()) {
-			return "No cuentas con permisos para eliminar anuncios";
+			System.err.println("USUARIO " + idUsuario + "intentó rechazar un juego --> ERROR: NO ES ADMIN");
+			return false; // No cuentas con permisos para aprobar anuncios
 		}
-
-		int filaBorrada = jdbcTemplate.update("DELETE FROM juegos WHERE id = ?", idJuego);
-		if (filaBorrada > 0) {
-			return "Se ha borrado el anuncio";
-		} else {
-			return "Error al borrar el anuncio";
-
+		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(), idJuego);
+		Juego juego = juegos.get(0);
+		if (!juego.isRevisado()) {
+			int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = false, revisado = true WHERE id = ?", idJuego);
+			if (fila > 0) {
+				System.out.println("Juego rechazado por admin --> ID JUEGO: " + idJuego);
+				return true; // Se ha borrado el anuncio
+			} else {
+				System.err.println("Intento de subir juego por admin -->ERROR: ID JUEGO: " + idJuego);
+				return false; // Error al borrar el anuncio
+			}
 		}
+		return false;
 	}
 
 	/**
@@ -246,20 +400,47 @@ public class CompraVentaVideojuegosApplication {
 	@GetMapping("/juegosPendientes")
 	public List<Juego> juegosPendientes() {
 		// Listamos todos los juegos
-		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where aceptado != true", new LisarJuegos());
+		List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where revisado = false", new ListarJuegos());
 		return listaJuegos;
 	}
 
 	/**
 	 * Listar juegos de mi biblioteca (comprados)
 	 */
-	@GetMapping("/misJuegos/{idUsuario}")
-	public List<Juego> misJuegos(@PathVariable Long idUsuario) {
-		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new LisarJuegos(), idUsuario);
+	@GetMapping("/misJuegosComprados/{idUsuario}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public List<Juego> misJuegosComprados(@PathVariable Long idUsuario) {
+		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new ListarJuegos(), idUsuario);
 
 	}
 
+	/**
+	 * Endpoint que devuelve la lista de juegos en venta de un usuario
+	 * (independientemente de que estén aceptados, pendientes o rechazados)
+	 * 
+	 * @param idUsuario
+	 * @return
+	 */
+	@GetMapping("/misJuegosEnVenta/{idUsuario}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public List<Juego> misJuegosEnVenta(@PathVariable Long idUsuario) {
+		return jdbcTemplate.query("SELECT * FROM juegos WHERE vendedor_id", new ListarJuegos(), idUsuario);
+	}
+
 	// ===================== MÉTODOS NO MAPPEADOS ===================== //
+
+	/**
+	 * Método que se encarga de poner la comisión correspondiente en cada juego
+	 * subido
+	 * 
+	 * @param precio
+	 * @return El precio final al que se va a vender
+	 */
+	private BigDecimal comision(BigDecimal precio) {
+		BigDecimal auxiliar = precio.multiply(COMISION);
+		return precio.add(auxiliar);
+
+	}
 
 	private String hashearPwd(String pwd) {
 		String HashedPwd = "";

@@ -6,10 +6,9 @@ import java.math.BigDecimal;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class Usuario implements Serializable {
-	// JsonIgnore --> ignora el atributo a la hora de mandar el JSON por el endpoint
-	@JsonIgnore
 	private Long id;
 	private String nombre;
+	// JsonIgnore --> ignora el atributo a la hora de mandar el JSON por el endpoint
 	@JsonIgnore
 	private String pwd;
 	private BigDecimal saldo;
