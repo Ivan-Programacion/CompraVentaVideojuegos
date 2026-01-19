@@ -64,7 +64,7 @@ public class CompraVentaVideojuegosApplication {
 				+ "                    nombre VARCHAR(150) NOT NULL,\n" + "                    imagen VARCHAR(255),\n"
 				+ "                    precio DECIMAL(10, 2) NOT NULL,\n"
 				+ "                    clave VARCHAR(255) NOT NULL UNIQUE,\n"
-				+ "                    aceptado BOOLEAN DEFAULT NULL,\n"
+				+ "                    aceptado BOOLEAN DEFAULT FALSE,\n"
 				+ "                    vendedor_id BIGINT NOT NULL,\n"
 				+ "                    comprador_id BIGINT DEFAULT NULL,\n"
 				+ "                    CONSTRAINT fk_vendedor FOREIGN KEY (vendedor_id) REFERENCES usuarios(id) ON DELETE CASCADE,\n"
