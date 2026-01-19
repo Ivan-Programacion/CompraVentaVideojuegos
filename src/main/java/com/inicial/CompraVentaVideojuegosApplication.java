@@ -12,18 +12,22 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.service.annotation.PatchExchange;
 
 @SpringBootApplication
 @RestController
 public class CompraVentaVideojuegosApplication {
 
 	private final JdbcTemplate jdbcTemplate;
-	private final String nombreTienda;
+	private final Long ID_TIENDA;
+	private final String NOMBRE_TIENDA;
+	private final BigDecimal COMISION;
 
 	public CompraVentaVideojuegosApplication(JdbcTemplate jdbcTemplate) {
 		this.jdbcTemplate = jdbcTemplate;
-		nombreTienda = "RetroGames";
+		ID_TIENDA = 1L;
+		NOMBRE_TIENDA = "RetroGames";
+		COMISION = new BigDecimal("0.1");
+
 	}
 
 	public static void main(String[] args) {
@@ -74,7 +78,7 @@ public class CompraVentaVideojuegosApplication {
 				+ "                    comprador_id BIGINT DEFAULT NULL,\n"
 				+ "                    CONSTRAINT fk_vendedor FOREIGN KEY (vendedor_id) REFERENCES usuarios(id) ON DELETE CASCADE,\n"
 				+ "                    CONSTRAINT fk_comprador FOREIGN KEY (comprador_id) REFERENCES usuarios(id) ON DELETE SET NULL)");
-		jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombreTienda, "", 0,
+		jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", NOMBRE_TIENDA, "", 0,
 				true);
 		return "Se han creado las tablas correctamente";
 	}
@@ -172,15 +176,22 @@ public class CompraVentaVideojuegosApplication {
 		// Si la lista de usuarios está vacía, significa que no existe ningún usuario
 		// con ese nombre
 		if (listaUsuarios.isEmpty()) {
-			// Creamos el usuario y lo devolvemos en el return
-			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
-					hashearPwd(pwd), 0, true);
-			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
-			System.out.println("ADMIN REGISTRADO " + listaUsuarios.toString()); // LOG
-			Usuario adminNuevo = listaUsuarios.get(0);
-			return adminNuevo;
+			try {
+				// Creamos el usuario y lo devolvemos en el return
+				jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
+						hashearPwd(pwd), 0, true);
+				listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(),
+						nombre);
+				System.out.println("ADMIN REGISTRADO " + listaUsuarios.toString()); // LOG
+				Usuario adminNuevo = listaUsuarios.get(0);
+				return adminNuevo;
+			} catch (Exception e) {
+				System.out.println("REGISTRO fallido");
+				return null;
+			}
 		}
 		// Si ya existe el usuario, devolvemos null
+		System.out.println("REGISTRO fallido");
 		return null;
 	}
 
@@ -202,15 +213,22 @@ public class CompraVentaVideojuegosApplication {
 		// Si la lista de usuarios está vacía, significa que no existe ningún usuario
 		// con ese nombre
 		if (listaUsuarios.isEmpty()) {
-			// Creamos el usuario y lo devolvemos en el return
-			jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
-					hashearPwd(pwd), 0, false);
-			listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(), nombre);
-			System.out.println("REGISTRO NUEVO: " + listaUsuarios.toString()); // LOG
-			Usuario usuarioNuevo = listaUsuarios.get(0);
-			return usuarioNuevo;
+			try {
+				// Creamos el usuario y lo devolvemos en el return
+				jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", nombre,
+						hashearPwd(pwd), 0, false);
+				listaUsuarios = jdbcTemplate.query("select * from usuarios where nombre = ?", new ListarUsuarios(),
+						nombre);
+				System.out.println("REGISTRO NUEVO: " + listaUsuarios.toString()); // LOG
+				Usuario usuarioNuevo = listaUsuarios.get(0);
+				return usuarioNuevo;
+			} catch (Exception e) {
+				System.out.println("REGISTRO fallido");
+				return null;
+			}
 		}
 		// Si ya existe el usuario, devolvemos null
+		System.out.println("REGISTRO fallido");
 		return null;
 	}
 
@@ -270,7 +288,7 @@ public class CompraVentaVideojuegosApplication {
 	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
-			@PathVariable double precio, @PathVariable String clave) {
+			@PathVariable BigDecimal precio, @PathVariable String clave) {
 
 		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idVendedor);
@@ -285,15 +303,19 @@ public class CompraVentaVideojuegosApplication {
 		// Si es admin, añadimos el nombre de la tienda y en el insert añadimos
 		// "aceptado" a true con la variable admin
 		if (usuario.isAdmin()) {
-			nombreFinal = usuario.getNombre();
+			nombreFinal = NOMBRE_TIENDA;
 		} else {
 			nombreFinal = nombre;
 			admin = false;
 		}
+		BigDecimal precioFinal = precio;
+		// Si no es admin, se añade la comisión
+		if (!admin)
+			precioFinal = comision(precio);
 		try {
 			jdbcTemplate.update(
 					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, comprador_id) VALUES (?,?,?,?,?,?,?, NULL)",
-					nombreFinal, imagen, precio, clave, idVendedor, admin, admin); // Si es admin devuelve true, si es
+					nombreFinal, imagen, precioFinal, clave, idVendedor, admin, admin); // Si es admin devuelve true, si es
 																					// usuario devuelve false
 			System.out.println("USUARIO " + idVendedor + " ha subido un juego");
 			return true; // Se ha subido el juego correctamente :
@@ -323,11 +345,17 @@ public class CompraVentaVideojuegosApplication {
 		List<Juego> juegos = jdbcTemplate.query("SELECT * FROM juegos WHERE id = ?", new ListarJuegos(), idJuego);
 		Juego juego = juegos.get(0);
 		if (!juego.isRevisado()) {
-			int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = true, revisado = true WHERE id = ?", idJuego);
-			if (fila > 0) {
-				System.out.println("Juego aprobado por admin --> ID JUEGO: " + idJuego);
-				return true; // Juego aprobado
-			} else {
+			try {
+				int fila = jdbcTemplate.update("UPDATE juegos SET aceptado = true, revisado = true WHERE id = ?",
+						idJuego);
+				if (fila > 0) {
+					System.out.println("Juego aprobado por admin --> ID JUEGO: " + idJuego);
+					return true; // Juego aprobado
+				} else {
+					System.err.println("Intento de subir juego por admin -->ERROR: ID JUEGO: " + idJuego);
+					return false; // Ha ocurrido un error al aprobar el juego
+				}
+			} catch (Exception e) {
 				System.err.println("Intento de subir juego por admin -->ERROR: ID JUEGO: " + idJuego);
 				return false; // Ha ocurrido un error al aprobar el juego
 			}
@@ -403,6 +431,19 @@ public class CompraVentaVideojuegosApplication {
 	}
 
 	// ===================== MÉTODOS NO MAPPEADOS ===================== //
+
+	/**
+	 * Método que se encarga de poner la comisión correspondiente en cada juego
+	 * subido
+	 * 
+	 * @param precio
+	 * @return El precio final al que se va a vender
+	 */
+	private BigDecimal comision(BigDecimal precio) {
+		BigDecimal auxiliar = precio.multiply(COMISION);
+		return precio.add(auxiliar);
+
+	}
 
 	private String hashearPwd(String pwd) {
 		String HashedPwd = "";
