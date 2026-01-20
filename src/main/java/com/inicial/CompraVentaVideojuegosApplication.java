@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -440,10 +441,10 @@ public class CompraVentaVideojuegosApplication {
 	 */
 	// VER @RequestParam para los parámetros. Evitamos problemas de decimales y
 	// nombres con espacios
-	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
+	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
-			@PathVariable double precio, @PathVariable String clave) {
+			@PathVariable double precio) {
 
 		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idVendedor);
@@ -460,6 +461,8 @@ public class CompraVentaVideojuegosApplication {
 			admin = false;
 			precioFinal = comision(BigDecimal.valueOf(precio));
 		}
+		// Se genera una calve aleatoria
+		String clave = generarClave();
 		try {
 			jdbcTemplate.update(
 					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, revisado, comprador_id) VALUES (?,?,?,?,?,?,?, NULL)",
@@ -622,6 +625,30 @@ public class CompraVentaVideojuegosApplication {
 	}
 
 	// ===================== MÉTODOS NO MAPPEADOS ===================== //
+
+	/**
+	 * Método que genera una clave aleatoria con la que el usuario podrá canjear su
+	 * juego una vez comprado
+	 */
+	private String generarClave() {
+		// Utilizamos la clase UUID que genera una clave random
+		String claveAleatoria = UUID.randomUUID().toString();
+		try {
+			List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where clave = ?", new ListarJuegos(),
+					claveAleatoria);
+			// Si la clave coincide con una existente, repetimos proceso hasta que sea
+			// diferente
+			while (!listaJuegos.isEmpty()) {
+				claveAleatoria = UUID.randomUUID().toString();
+				listaJuegos = jdbcTemplate.query("select * from juegos where clave = ?", new ListarJuegos(),
+						claveAleatoria);
+			}
+			return claveAleatoria;
+		} catch (Exception e) {
+			System.err.println("SE INTENTÓ GENERAR UNA CLAVE PARA UN JUEGO NUEVO --> ERROR");
+			return null;
+		}
+	}
 
 	/**
 	 * Método que se encarga de poner la comisión correspondiente en cada juego
