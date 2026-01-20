@@ -297,8 +297,8 @@ public class CompraVentaVideojuegosApplication {
 		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idVendedor);
 		if (user.isEmpty()) {
-			System.err
-					.println("USUARIO " + idVendedor + " intentó subir un juego --> ERROR: no se ha encontrado usuario");
+			System.err.println(
+					"USUARIO " + idVendedor + " intentó subir un juego --> ERROR: no se ha encontrado usuario");
 			return false; // El usuario no ha sido encontrado en la BBDD
 		}
 		Usuario usuario = user.get(0);
@@ -412,6 +412,12 @@ public class CompraVentaVideojuegosApplication {
 	public List<Juego> misJuegosComprados(@PathVariable Long idUsuario) {
 		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new ListarJuegos(), idUsuario);
 
+	}
+
+	@GetMapping("/retrieveSaldo/{idUsuario}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public BigDecimal retrieveSaldo(@PathVariable Long idUsuario) {
+		return jdbcTemplate.queryForObject("SELECT saldo FROM usuarios WHERE id = ?", BigDecimal.class, idUsuario);
 	}
 
 	/**
