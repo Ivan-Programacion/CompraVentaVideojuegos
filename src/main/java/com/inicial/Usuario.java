@@ -12,7 +12,6 @@ public class Usuario implements Serializable {
 	@JsonIgnore
 	private String pwd;
 	private BigDecimal saldo;
-	@JsonIgnore
 	private boolean admin;
 
 	public Usuario(Long id, String nombre, String pwd, BigDecimal saldo, boolean admin) {

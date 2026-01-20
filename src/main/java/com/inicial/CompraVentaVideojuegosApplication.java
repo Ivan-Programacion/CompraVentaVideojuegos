@@ -3,6 +3,8 @@ package com.inicial;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.springframework.boot.SpringApplication;
@@ -87,6 +89,91 @@ public class CompraVentaVideojuegosApplication {
 		return "Se han creado las tablas correctamente";
 	}
 
+	@GetMapping("/comprarCarrito/{idComprador}/{juegos}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public boolean comprarCarrito(@PathVariable Long idComprador, @PathVariable String juegos) {
+		// Ejemplo de juegos --> 4:27:5:3 (IDs de los juegos separados por :)
+		String[] idJuegos = juegos.split(":");
+		ArrayList<Long> idJuegosEnteros = new ArrayList<>();
+		// Añades los IDs como long a una lista
+		try {
+			for (String id : idJuegos) {
+				Long idEntero = Long.parseLong(id);
+				idJuegosEnteros.add(idEntero);
+			}
+			// Miramos si el usuario existe
+			List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
+					idComprador);
+			if (usuarios.isEmpty())
+				return false;
+			Usuario usuario = usuarios.get(0);
+
+			String query = "select * from juegos where id = ?";
+			ArrayList<Juego> listaJuegos = new ArrayList<>();
+			// Añadimos los juegos a la lista, si existen o si están disponibles.
+			for (Long id : idJuegosEnteros) {
+				List<Juego> juego = jdbcTemplate.query(query, new ListarJuegos(), id);
+				if (juego.isEmpty()) {
+					System.err.println(
+							"USUARIO " + idComprador + " intentó comprar carrito --> ERROR: no se encontró juego");
+					return false;
+				}
+				listaJuegos.add(juego.get(0));
+			}
+			// Sumamos el total que tiene que pagar el usuario
+			// Inicializamos a 0
+			BigDecimal totalPagar = BigDecimal.ZERO;
+			for (Juego juego : listaJuegos)
+				totalPagar.add(juego.getPrecio());
+			System.out.println("TOTAL A PAGAR POR USUARIO " + idComprador + " --> " + totalPagar + "€");
+			// usuario.getSaldo < totalPagar
+			if (usuario.getSaldo().compareTo(totalPagar) < 0) {
+				System.err.println("USUARIO " + idComprador + " intentó pagar juegos --> ERROR: saldo insuficiente");
+				return false;
+			}
+			// Le quitamos lo que ha pagado
+			usuario.setSaldo(usuario.getSaldo().subtract(totalPagar));
+
+			// buscamos los usuarios que han vendido los juegos
+			ArrayList<Usuario> usuariosVendedores = new ArrayList<>();
+			for (Juego juego : listaJuegos) {
+				usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
+						juego.getVendedor_id());
+				if (usuarios.isEmpty())
+					return false;
+				usuariosVendedores.add(usuarios.get(0));
+			}
+
+			// Tenemos:
+			// usuariosVendedores
+			// listaJuegos
+			// Hay que hacer los cambios primero en local por si hubiera algún fallo en la
+			// base de datos
+			BigDecimal saldoTienda = BigDecimal.ZERO;
+			for (Juego juego : listaJuegos) {
+				// Cambiamos el id del comprador
+				juego.setComprador_id(idComprador);
+				for (Usuario user : usuariosVendedores) {
+					if (juego.getVendedor_id() == user.getId()) {
+						if (user.isAdmin()) {
+							user.setSaldo(user.getSaldo().add(juego.getPrecio()));
+						} else {
+							BigDecimal comisionJuego = juego.getPrecio().multiply(COMISION);
+							saldoTienda.add(comisionJuego);
+							BigDecimal saldoUser = juego.getPrecio().subtract(comisionJuego);
+							user.setSaldo(user.getSaldo().add(saldoUser));
+						}
+					}
+				}
+			}
+			// QUEDA REALIZAR TODOS LOS UPDATES
+//			jdbcTemplate.update("update juegos set comprador_id = ? where id = ?", usuario.getId(), juego.getId());
+		} catch (NumberFormatException e) {
+			System.err.println("USUARIO " + idComprador + " intentó comprar carrito --> ERROR: juego no válido");
+		}
+		return false;
+	}
+
 	/**
 	 * Endpoint que añade saldo a la cuenta
 	 * 
@@ -96,6 +183,7 @@ public class CompraVentaVideojuegosApplication {
 	 *         algún problema y no lo ha actualizado
 	 */
 	@GetMapping("/addSaldo/{idUsuario}/{saldo}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean addSaldo(@PathVariable Long idUsuario, @PathVariable BigDecimal saldo) {
 		List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
 				idUsuario);
@@ -417,7 +505,13 @@ public class CompraVentaVideojuegosApplication {
 	@GetMapping("/retrieveSaldo/{idUsuario}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public BigDecimal retrieveSaldo(@PathVariable Long idUsuario) {
-		return jdbcTemplate.queryForObject("SELECT saldo FROM usuarios WHERE id = ?", BigDecimal.class, idUsuario);
+		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
+				idUsuario);
+		if (usuarios.isEmpty()) {
+			System.err.println("USUARIO " + idUsuario + "intentó rechazar un juego --> ERROR: NO ES ADMIN");
+			return null;
+		}
+		return usuarios.get(0).getSaldo();
 	}
 
 	/**
