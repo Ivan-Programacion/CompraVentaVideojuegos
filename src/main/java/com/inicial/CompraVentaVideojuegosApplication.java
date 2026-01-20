@@ -68,12 +68,12 @@ public class CompraVentaVideojuegosApplication {
 	// - registro (admin/usuario) ------------> CHECK
 	// - login (admin/usuario) ------------> CHECK
 	// - datosJuego (datos de juego) ------------> CHECK
-	// - subirJuego implementar encriptar clave
+	// - subirJuego ------------> CHECK
 	// - borrarJuego (admin/usuario) ------------> CHECK
 	//
 	// USUARIO
 	// - listarJuegos (en venta y SIN comprador) ------------> CHECK
-	// - comprarCarrito (comprar lista juegos) implementar descriptar clave
+	// - comprarCarrito (comprar lista juegos) ------------> CHECK
 	// - misJuegosComprados ------------> CHECK
 	// - misJuegosEnVenta ------------> CHECK
 	// - addSaldo ------------> CHECK
@@ -731,10 +731,11 @@ public class CompraVentaVideojuegosApplication {
 	}
 
 	/**
-	 * Método que genera una clave aleatoria para un juego y ya de paso la encripta con el método cifrarClave
+	 * Método que genera una clave aleatoria para un juego y ya de paso la encripta
+	 * con el método cifrarClave
 	 * 
-	 * @return La clave aleatoria en sí encriptada, o nulo en caso de que hubiera algún error
-	 *         al generarla
+	 * @return La clave aleatoria en sí encriptada, o nulo en caso de que hubiera
+	 *         algún error al generarla
 	 */
 	private String generarClave() {
 		// Utilizamos la clase UUID que genera una clave random
