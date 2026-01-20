@@ -63,18 +63,18 @@ public class CompraVentaVideojuegosApplication {
 	// - misJuegosComprados ------------> CHECK
 	// - misJuegosEnVenta ------------> CHECK
 	// - addSaldo ------------> CHECK
+	// - verUsuario ------------> CHECK
+	// - buscarJuego (filtro busqueda) ------------> CHECK
+	// - misJuegosComprados ------------> CHECK
 	//
 	// ADMIN
+	// - aprobarJuego ------------> CHECK
 	// - listarJuegosPendientes ------------> CHECK
 	// - rechazarJuego ------------> CHECK
 	//
 	// ===== OPCIONALES =====
-	// USUARIO
-	// - buscarJuego (filtro busqueda)
 	// ADMIN
 	// - listarUsuarios
-	// - verUsuario
-	// - juegosCompradosPorUsuario (utilizar misJuegosComprados) --> CHECK
 	// - juegosEnVentaPorUsuario (utilizar misJuegosEnVenta)
 
 	@GetMapping("/crear")
