@@ -1,12 +1,23 @@
 package com.inicial;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -26,6 +37,7 @@ public class CompraVentaVideojuegosApplication {
 	private final String NOMBRE_TIENDA;
 	private final BigDecimal COMISION;
 	private final BigDecimal COMISION_INVERSA;
+	private final SecretKey CLAVE_SIMETRICA;
 
 	public CompraVentaVideojuegosApplication(JdbcTemplate jdbcTemplate) {
 		this.jdbcTemplate = jdbcTemplate;
@@ -43,6 +55,8 @@ public class CompraVentaVideojuegosApplication {
 		// Lo mismo que: precio * 1 / 11
 		// Que se queda en: precio / 11 --> De ahí sale el 11
 		COMISION_INVERSA = new BigDecimal("11");
+		// Generamos una clave simetrica para encriptar/desencriptar todas las claves
+		CLAVE_SIMETRICA = generarClaveSimetrica();
 
 	}
 
@@ -54,12 +68,12 @@ public class CompraVentaVideojuegosApplication {
 	// - registro (admin/usuario) ------------> CHECK
 	// - login (admin/usuario) ------------> CHECK
 	// - datosJuego (datos de juego) ------------> CHECK
-	// - subirJuego ------------> CHECK
+	// - subirJuego implementar encriptar clave
 	// - borrarJuego (admin/usuario) ------------> CHECK
 	//
 	// USUARIO
 	// - listarJuegos (en venta y SIN comprador) ------------> CHECK
-	// - comprarCarrito (comprar lista juegos) implementar clave
+	// - comprarCarrito (comprar lista juegos) implementar descriptar clave
 	// - misJuegosComprados ------------> CHECK
 	// - misJuegosEnVenta ------------> CHECK
 	// - addSaldo ------------> CHECK
@@ -138,12 +152,21 @@ public class CompraVentaVideojuegosApplication {
 			// HASH MAP donde añadiremos las claves
 			HashMap<Long, String> claves = new HashMap<>();
 			for (Juego juego : listaJuegos) {
+				// Si el vendedor es el mismo que el comprador, no te dejará realizar la compra
+				// (comprar un juego propio)
 				if (juego.getVendedor_id() == idComprador) {
 					System.err.println(
 							"USUARIO " + idComprador + " intentó comprar juegos --> ERROR: comprando un juego propio");
 					return null;
 				}
-				claves.put(juego.getId(), juego.getClave());
+				// Pasaremos las claves desencriptadas
+				String claveDesencriptada = descifrarClave(juego.getClave());
+				if (claveDesencriptada == null) {
+					System.err.println(
+							"USUARIO " + idComprador + " intentó comprar juegos --> ERROR: al desencriptar la clave");
+					return null;
+				}
+				claves.put(juego.getId(), claveDesencriptada);
 			}
 
 			// Sumamos el total que tiene que pagar el usuario
@@ -440,10 +463,10 @@ public class CompraVentaVideojuegosApplication {
 	 */
 	// VER @RequestParam para los parámetros. Evitamos problemas de decimales y
 	// nombres con espacios
-	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}/{clave}")
+	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
-			@PathVariable double precio, @PathVariable String clave) {
+			@PathVariable double precio) {
 
 		List<Usuario> user = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
 				idVendedor);
@@ -460,6 +483,8 @@ public class CompraVentaVideojuegosApplication {
 			admin = false;
 			precioFinal = comision(BigDecimal.valueOf(precio));
 		}
+		// Se genera una calve aleatoria ya encriptada
+		String clave = generarClave();
 		try {
 			jdbcTemplate.update(
 					"INSERT INTO juegos(nombre, imagen, precio, clave, vendedor_id, aceptado, revisado, comprador_id) VALUES (?,?,?,?,?,?,?, NULL)",
@@ -622,6 +647,116 @@ public class CompraVentaVideojuegosApplication {
 	}
 
 	// ===================== MÉTODOS NO MAPPEADOS ===================== //
+
+	/**
+	 * Método que genera una llave simétrica para la encriptacion de claves
+	 * 
+	 * @return La clave simétrica correspondiente, o nulo en caso de que no se haya
+	 *         podido hacer
+	 */
+	private SecretKey generarClaveSimetrica() {
+		try {
+			return KeyGenerator.getInstance("AES").generateKey();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	/**
+	 * Método encargado de cifrar la clave
+	 * 
+	 * @param calve
+	 * @return El string correspondiente de la clave encriptada, o nulo en caso de
+	 *         que algo haya fallado
+	 */
+	private String cifrarClave(String calve) {
+		String mensajeCifrado = null;
+//		System.err.println("ENCRIPTADO --> sin encriptar: " + calve);
+		// Utilizamos Cipher para encriptar en AES
+		try {
+			Cipher aesCipher = Cipher.getInstance("AES");
+			aesCipher.init(Cipher.ENCRYPT_MODE, CLAVE_SIMETRICA);
+			String mensaje = calve;
+			// Utilizamos UTF-8 para que no haya problemas y lo encodeamos en Base64 para
+			// que lo guarde correctamente
+			byte[] bytesCifrados = aesCipher.doFinal(mensaje.getBytes(StandardCharsets.UTF_8));
+			mensajeCifrado = Base64.getEncoder().encodeToString(bytesCifrados);
+			aesCipher = Cipher.getInstance("AES");
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			e.printStackTrace();
+		}
+//		System.err.println("ENCRIPTADO --> encriptado: " + mensajeCifrado);
+		return mensajeCifrado;
+	}
+
+	/**
+	 * Método que descifra una clave para encriptada
+	 * 
+	 * @param clave
+	 * @return El string con la clave original, o nulo en caso de que fallara al
+	 *         realizar la desencriptacion
+	 */
+	public String descifrarClave(String clave) {
+		String mensajeDescifrado = null;
+		System.err.println("DESENCRIPTADO --> sin desencriptar: " + clave);
+		try {
+			Cipher aesCipher = Cipher.getInstance("AES");
+			aesCipher.init(Cipher.DECRYPT_MODE, CLAVE_SIMETRICA);
+			// Se desencripta con Base64 y UTF8, igual que al encriptar
+			// Añadimos trim() por si quedaran espacios no deseados
+			mensajeDescifrado = new String(aesCipher.doFinal(Base64.getDecoder().decode(clave)), StandardCharsets.UTF_8)
+					.trim();
+		} catch (InvalidKeyException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			e.printStackTrace();
+		}
+		System.err.println("DESENCRIPTADO --> desencriptado: " + mensajeDescifrado);
+		return mensajeDescifrado;
+	}
+
+	/**
+	 * Método que genera una clave aleatoria para un juego y ya de paso la encripta con el método cifrarClave
+	 * 
+	 * @return La clave aleatoria en sí encriptada, o nulo en caso de que hubiera algún error
+	 *         al generarla
+	 */
+	private String generarClave() {
+		// Utilizamos la clase UUID que genera una clave random
+		String claveAleatoria = UUID.randomUUID().toString();
+		String claveFinal = "";
+		try {
+			List<Juego> listaJuegos = jdbcTemplate.query("select * from juegos where clave = ?", new ListarJuegos(),
+					claveAleatoria);
+			// Si la clave coincide con una existente, repetimos proceso hasta que sea
+			// diferente
+			while (!listaJuegos.isEmpty()) {
+				claveAleatoria = UUID.randomUUID().toString();
+				listaJuegos = jdbcTemplate.query("select * from juegos where clave = ?", new ListarJuegos(),
+						claveAleatoria);
+			}
+			claveFinal = cifrarClave(claveAleatoria);
+			return claveFinal;
+		} catch (Exception e) {
+			System.err.println("SE INTENTÓ GENERAR UNA CLAVE PARA UN JUEGO NUEVO --> ERROR");
+			return null;
+		}
+	}
 
 	/**
 	 * Método que se encarga de poner la comisión correspondiente en cada juego
