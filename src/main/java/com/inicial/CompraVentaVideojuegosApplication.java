@@ -3,11 +3,15 @@ package com.inicial;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,12 +25,24 @@ public class CompraVentaVideojuegosApplication {
 	private final Long ID_TIENDA;
 	private final String NOMBRE_TIENDA;
 	private final BigDecimal COMISION;
+	private final BigDecimal COMISION_INVERSA;
 
 	public CompraVentaVideojuegosApplication(JdbcTemplate jdbcTemplate) {
 		this.jdbcTemplate = jdbcTemplate;
 		ID_TIENDA = 1L;
 		NOMBRE_TIENDA = "RetroGames";
+		// Comision general --> 10% (0.1)
 		COMISION = new BigDecimal("0.1");
+		// Comisión inversa (para sacar la comisión de un precio final)
+		// Habria que hacer una regla de tres sobre el precio del juego:
+		//
+		// precio ---------> 110% (100% por el vendedor + 10% comisión)
+		// X --------------> 10% (X será el 10% del precio original)
+		//
+		// Que se resume en: precio * 10 / 110
+		// Lo mismo que: precio * 1 / 11
+		// Que se queda en: precio / 11 --> De ahí sale el 11
+		COMISION_INVERSA = new BigDecimal("11");
 
 	}
 
@@ -43,22 +59,22 @@ public class CompraVentaVideojuegosApplication {
 	//
 	// USUARIO
 	// - listarJuegos (en venta y SIN comprador) ------------> CHECK
-	// - comprarCarrito (comprar lista juegos)
+	// - comprarCarrito (comprar lista juegos) implementar clave
 	// - misJuegosComprados ------------> CHECK
 	// - misJuegosEnVenta ------------> CHECK
 	// - addSaldo ------------> CHECK
+	// - verUsuario ------------> CHECK
+	// - buscarJuego (filtro busqueda) ------------> CHECK
+	// - misJuegosComprados ------------> CHECK
 	//
 	// ADMIN
+	// - aprobarJuego ------------> CHECK
 	// - listarJuegosPendientes ------------> CHECK
 	// - rechazarJuego ------------> CHECK
 	//
 	// ===== OPCIONALES =====
-	// USUARIO
-	// - buscarJuego (filtro busqueda)
 	// ADMIN
 	// - listarUsuarios
-	// - verUsuario
-	// - juegosCompradosPorUsuario (utilizar misJuegosComprados) --> CHECK
 	// - juegosEnVentaPorUsuario (utilizar misJuegosEnVenta)
 
 	@GetMapping("/crear")
@@ -88,6 +104,140 @@ public class CompraVentaVideojuegosApplication {
 	}
 
 	/**
+	 * Endpoint que realiza la acción de compra del usuario de todo el carrito
+	 * 
+	 * @param idComprador
+	 * @param juegos
+	 * @return devuelve un JSON con los ID de los juegos y su clave para canjearlo,
+	 *         o nulo en caso de que haya ocurrido algún error
+	 */
+	@GetMapping("/comprarCarrito/{idComprador}/{juegos}")
+	@Transactional // --> Para que cumpla con los requisitos de Transacción y no haya errores en
+					// Base de Datos
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public HashMap<Long, String> comprarCarrito(@PathVariable Long idComprador, @PathVariable List<Long> juegos) {
+		try {
+			// Miramos si el usuario existe
+			List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
+					idComprador);
+			if (usuarios.isEmpty())
+				return null;
+			Usuario usuario = usuarios.get(0);
+			String query = "select * from juegos where id = ?";
+			ArrayList<Juego> listaJuegos = new ArrayList<>();
+			// Añadimos los juegos a la lista, si existen o si están disponibles.
+			for (Long id : juegos) {
+				List<Juego> juego = jdbcTemplate.query(query, new ListarJuegos(), id);
+				if (juego.isEmpty()) {
+					System.err.println(
+							"USUARIO " + idComprador + " intentó comprar carrito --> ERROR: no se encontró juego");
+					return null;
+				}
+				listaJuegos.add(juego.get(0));
+			}
+			// HASH MAP donde añadiremos las claves
+			HashMap<Long, String> claves = new HashMap<>();
+			for (Juego juego : listaJuegos) {
+				if (juego.getVendedor_id() == idComprador) {
+					System.err.println(
+							"USUARIO " + idComprador + " intentó comprar juegos --> ERROR: comprando un juego propio");
+					return null;
+				}
+				claves.put(juego.getId(), juego.getClave());
+			}
+
+			// Sumamos el total que tiene que pagar el usuario
+			// Inicializamos a 0
+			BigDecimal totalPagar = BigDecimal.ZERO;
+			for (Juego juego : listaJuegos)
+				totalPagar = totalPagar.add(juego.getPrecio());
+			System.out.println("TOTAL A PAGAR POR USUARIO " + idComprador + " --> " + totalPagar + "€");
+			// usuario.getSaldo < totalPagar
+			if (usuario.getSaldo().compareTo(totalPagar) < 0) {
+				System.err.println("USUARIO " + idComprador + " intentó pagar juegos --> ERROR: saldo insuficiente");
+				return null;
+			}
+			// Le quitamos lo que ha pagado
+			usuario.setSaldo(usuario.getSaldo().subtract(totalPagar));
+
+			// buscamos los usuarios que han vendido los juegos
+			// Lo guardaremos en un HashMap para que, en caso de que el vendedor sea el
+			// mismo, no hagamos usuarios duplicados
+			HashMap<Long, Usuario> usuariosVendedores = new HashMap<>();
+			for (Juego juego : listaJuegos) {
+				usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
+						juego.getVendedor_id());
+				if (usuarios.isEmpty())
+					return null;
+				usuariosVendedores.put(usuarios.get(0).getId(), usuarios.get(0));
+			}
+
+			// Tenemos:
+			// usuariosVendedores
+			// listaJuegos
+			// Hay que hacer los cambios primero en local por si hubiera algún fallo en la
+			// base de datos
+			BigDecimal saldoTienda = BigDecimal.ZERO;
+			for (Juego juego : listaJuegos) {
+				// Cambiamos el id del comprador
+				juego.setComprador_id(idComprador);
+				// Recorremos, por cada juego, los diferentes usuarios
+				for (Map.Entry<Long, Usuario> entry : usuariosVendedores.entrySet()) {
+					// Si el id del vendedor del juego coincide con el usuario, realizamos acción
+					if (juego.getVendedor_id() == entry.getKey()) {
+						Usuario user = entry.getValue();
+						// Si es admin, le damos íntegro todo el dinero que costaba el juego
+						if (user.isAdmin())
+							user.setSaldo(user.getSaldo().add(juego.getPrecio()));
+						// Si no, le daremos el dinero menos la comisión (que se llevará la tienda)
+						else {
+							// Necesitamos sacar la comisión del precio con --> COMISION_INVERSA
+							BigDecimal comisionJuego = juego.getPrecio().divide(COMISION_INVERSA);
+							saldoTienda = saldoTienda.add(comisionJuego);
+							BigDecimal saldoUser = juego.getPrecio().subtract(comisionJuego);
+							user.setSaldo(user.getSaldo().add(saldoUser));
+						}
+					}
+				}
+			}
+			// Ahora toca actualizar todos los datos de los usuarios y de los juegos
+			// 1. Actualizar saldo del comprador
+			int fila1 = jdbcTemplate.update("update usuarios set saldo = ? where id = ?", usuario.getSaldo(),
+					usuario.getId());
+			if (fila1 <= 0)
+				// Si falla, debemos lanzar una excepcion para que se haga el rollback
+				// automáticamente y no haga los updates anteriores que se hayan hecho.
+				throw new Exception();
+			// 2. Actualizar saldo vendedores
+			for (Juego juego : listaJuegos) {
+				int fila2 = jdbcTemplate.update("update juegos set precio = ?, comprador_id = ? where id = ?",
+						juego.getPrecio(), juego.getComprador_id(), juego.getId());
+				if (fila2 <= 0)
+					throw new Exception();
+			}
+			// 3. Actualizar saldo tienda
+			for (Map.Entry<Long, Usuario> entry : usuariosVendedores.entrySet()) {
+				int fila = jdbcTemplate.update("update usuarios set saldo = ? where id = ?",
+						entry.getValue().getSaldo(), entry.getKey());
+				if (fila <= 0)
+					throw new Exception();
+			}
+			// Y por último, toca añadir el saldo correspondiente de las comisiones a la
+			// tienda
+			int fila = jdbcTemplate.update("update usuarios set saldo = saldo + ? where id = ?", saldoTienda,
+					ID_TIENDA);
+			if (fila <= 0)
+				throw new Exception();
+			System.out.println("USUARIO " + usuario.getId() + " - " + usuario.getNombre() + " --> ha comprado:\n"
+					+ listaJuegos.toString());
+			return claves;
+		} catch (Exception e) {
+			System.err.println("USUARIO " + idComprador + " intentó comprar carrito --> ERROR: persistencia de datos");
+			return null;
+		}
+	}
+
+	/**
 	 * Endpoint que añade saldo a la cuenta
 	 * 
 	 * @param idUsuario
@@ -96,6 +246,7 @@ public class CompraVentaVideojuegosApplication {
 	 *         algún problema y no lo ha actualizado
 	 */
 	@GetMapping("/addSaldo/{idUsuario}/{saldo}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean addSaldo(@PathVariable Long idUsuario, @PathVariable BigDecimal saldo) {
 		List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
 				idUsuario);
@@ -417,7 +568,13 @@ public class CompraVentaVideojuegosApplication {
 	@GetMapping("/retrieveSaldo/{idUsuario}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public BigDecimal retrieveSaldo(@PathVariable Long idUsuario) {
-		return jdbcTemplate.queryForObject("SELECT saldo FROM usuarios WHERE id = ?", BigDecimal.class, idUsuario);
+		List<Usuario> usuarios = jdbcTemplate.query("SELECT * FROM usuarios WHERE id = ?", new ListarUsuarios(),
+				idUsuario);
+		if (usuarios.isEmpty()) {
+			System.err.println("USUARIO " + idUsuario + "intentó rechazar un juego --> ERROR: NO ES ADMIN");
+			return null;
+		}
+		return usuarios.get(0).getSaldo();
 	}
 
 	/**
@@ -431,6 +588,37 @@ public class CompraVentaVideojuegosApplication {
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public List<Juego> misJuegosEnVenta(@PathVariable Long idUsuario) {
 		return jdbcTemplate.query("SELECT * FROM juegos WHERE vendedor_id", new ListarJuegos(), idUsuario);
+	}
+
+	/**
+	 * Endpoint que devuelve el nombre de un usuario dado por su ID
+	 * 
+	 * @param id
+	 * @return el nombre del usuario
+	 */
+	@GetMapping("/verUsuario/{id}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public String nombreUsuario(@PathVariable Long id) {
+		List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(), id);
+		if (usuarios.isEmpty())
+			return null;
+		return usuarios.get(0).getNombre();
+	}
+
+	/**
+	 * Endpoint que busca un juego según el filtrado que se le haya dado de búsqueda
+	 * 
+	 * @param texto
+	 * @return Lista de todos los juegos que cumplan el listado de búsqueda
+	 */
+	@GetMapping("/buscarJuego/{texto}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public List<Juego> buscarJuego(@PathVariable String texto) {
+		// Listamos todos los juegos
+		List<Juego> listaJuegos = jdbcTemplate.query(
+				"select * from juegos where aceptado = true and comprador_id is NULL and LOWER(nombre) like LOWER('%texto%')",
+				new ListarJuegos());
+		return listaJuegos;
 	}
 
 	// ===================== MÉTODOS NO MAPPEADOS ===================== //
