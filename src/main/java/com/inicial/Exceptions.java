@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 public class Exceptions {
-	// Manejador de excepciones general por ahora
+	// Manejador de excepciones general
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<String> manejarExcGeneral(Exception e) {
 		System.err.println(e);

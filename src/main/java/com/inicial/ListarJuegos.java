@@ -13,7 +13,6 @@ public class ListarJuegos implements RowMapper<Juego> {
 		Juego juegos = new Juego(rs.getLong("id"), rs.getLong("vendedor_id"), rs.getLong("comprador_id"),
 				rs.getString("nombre"), rs.getString("imagen"), rs.getBigDecimal("precio"), rs.getString("clave"),
 				rs.getBoolean("aceptado"), rs.getBoolean("revisado"));
-//				new SecretKeySpec(rs.getBytes("secretKey"), "AES")); // para crear la secretKey. Hay que pasarla a bytes
 		return juegos;
 	}
 

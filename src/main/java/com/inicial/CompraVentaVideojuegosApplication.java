@@ -1,7 +1,10 @@
 package com.inicial;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,6 +21,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -56,7 +60,7 @@ public class CompraVentaVideojuegosApplication {
 		// Que se queda en: precio / 11 --> De ahí sale el 11
 		COMISION_INVERSA = new BigDecimal("11");
 		// Generamos una clave simetrica para encriptar/desencriptar todas las claves
-		CLAVE_SIMETRICA = generarClaveSimetrica();
+		CLAVE_SIMETRICA = obtenerClaveSimetrica();
 
 	}
 
@@ -478,6 +482,11 @@ public class CompraVentaVideojuegosApplication {
 		Usuario usuario = user.get(0);
 		boolean admin = true;
 		BigDecimal precioFinal = BigDecimal.valueOf(precio);
+		// precioFinal <= 0 --> no se puede subir un juego con saldo negativo o cero
+		if (precioFinal.compareTo(BigDecimal.ZERO) <= 0) {
+			System.err.println("USUARIO " + idVendedor + " intento subir juego --> ERROR: saldo negativo");
+			return false;
+		}
 		// Si no es admin, se añade la comisión
 		if (!usuario.isAdmin()) {
 			admin = false;
@@ -612,7 +621,7 @@ public class CompraVentaVideojuegosApplication {
 	@GetMapping("/misJuegosEnVenta/{idUsuario}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public List<Juego> misJuegosEnVenta(@PathVariable Long idUsuario) {
-		return jdbcTemplate.query("SELECT * FROM juegos WHERE vendedor_id", new ListarJuegos(), idUsuario);
+		return jdbcTemplate.query("SELECT * FROM juegos WHERE vendedor_id = ?", new ListarJuegos(), idUsuario);
 	}
 
 	/**
@@ -649,16 +658,43 @@ public class CompraVentaVideojuegosApplication {
 	// ===================== MÉTODOS NO MAPPEADOS ===================== //
 
 	/**
-	 * Método que genera una llave simétrica para la encriptacion de claves
+	 * Método que obtiene clave simétrica ya creada desde un fichero encriptado, o
+	 * bien la genera nueva en caso de ser la primera vez que se genera la BBDD
 	 * 
-	 * @return La clave simétrica correspondiente, o nulo en caso de que no se haya
-	 *         podido hacer
+	 * @return Devuelve la propia clave simétrica, o bien nulo en caso de que algo
+	 *         haya fallado
 	 */
-	private SecretKey generarClaveSimetrica() {
+	private SecretKey obtenerClaveSimetrica() {
+		File ficheroClaveSimetrica = new File("secret.key");
 		try {
-			return KeyGenerator.getInstance("AES").generateKey();
+			if (ficheroClaveSimetrica.exists()) {
+				// Leer la clave existente.
+				//
+				// Con el método toPath utilizamos la forma de persistir datos moderna que es
+				// creando un objeto de tipo java.nio.file.Path, lo cual incluye de forma
+				// íntegra la declaración de FileInputStream y FileOutputStream
+				byte[] claveEnBytes = Files.readAllBytes(ficheroClaveSimetrica.toPath());
+				// Devolvemos la clave simétrica de tipo AES
+				return new SecretKeySpec(claveEnBytes, "AES");
+			} else {
+				// Generar nueva por primera y única vez
+				KeyGenerator generadorClave = KeyGenerator.getInstance("AES");
+				// Tamaño con el que se guardará la clave (por defecto Java lo guarde en 128 y
+				// es mejor ponerlo en el valor más grande, que es 256)
+				generadorClave.init(256);
+				SecretKey miClave = generadorClave.generateKey();
+				// Guardar los bytes en el fichero
+				// Hay que encodearla (.getEncoded) para poder hacer persistencia en el fichero
+				Files.write(ficheroClaveSimetrica.toPath(), miClave.getEncoded());
+				return miClave;
+			}
+		} catch (IOException e) {
+			System.err.println("ERROR --> al generar/adquirir clave simétrica [IOException]");
+//			e.printStackTrace();
+			return null;
 		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+			System.err.println("ERROR --> al generar la instancia de la clave simétrica");
+//			e.printStackTrace();
 			return null;
 		}
 	}
@@ -672,7 +708,7 @@ public class CompraVentaVideojuegosApplication {
 	 */
 	private String cifrarClave(String calve) {
 		String mensajeCifrado = null;
-//		System.err.println("ENCRIPTADO --> sin encriptar: " + calve);
+		System.err.println("ENCRIPTADO --> sin encriptar: " + calve);
 		// Utilizamos Cipher para encriptar en AES
 		try {
 			Cipher aesCipher = Cipher.getInstance("AES");
@@ -694,7 +730,7 @@ public class CompraVentaVideojuegosApplication {
 		} catch (NoSuchPaddingException e) {
 			e.printStackTrace();
 		}
-//		System.err.println("ENCRIPTADO --> encriptado: " + mensajeCifrado);
+		System.err.println("ENCRIPTADO --> encriptado: " + mensajeCifrado);
 		return mensajeCifrado;
 	}
 
