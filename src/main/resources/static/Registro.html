@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetroGames - Registro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700;900&display=swap');
+
+        .retro-title {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .body-text {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body class="bg-[#0f172a] text-slate-200 body-text min-h-screen flex flex-col">
+
+    <nav class="glass py-4 px-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="Home.html" class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <i class="fa-solid fa-gamepad text-xl text-white"></i>
+                </div>
+                <span class="retro-title text-[10px] tracking-tighter text-indigo-400">RETRO<br>WORLD</span>
+            </a>
+            <a href="Login.html" class="text-indigo-400 font-bold hover:text-white transition text-sm">
+                ¿YA TIENES CUENTA?
+            </a>
+        </div>
+    </nav>
+
+    <main class="flex-grow flex items-center justify-center px-6 py-12">
+        <div class="w-full max-w-lg glass rounded-3xl p-10 shadow-2xl border border-indigo-500/20">
+
+            <div class="text-center mb-8">
+                <h1 class="retro-title text-sm text-indigo-400 mb-4">NUEVO JUGADOR</h1>
+                <p class="text-slate-400 text-sm font-medium italic">"A new challenger approaches!"</p>
+            </div>
+
+            <form action="#" class="space-y-4" id="registerForm">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 ml-1">Nombre
+                        de Usuario</label>
+                    <input type="text" placeholder="Jane Doe" id="txtName"
+                        class="w-full bg-slate-900/50 border border-slate-700 p-4 rounded-xl focus:outline-none focus:border-indigo-500 transition text-white">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 ml-1">Contraseña</label>
+                        <input type="password" placeholder="••••••••" id="txtPwd"
+                            class="w-full bg-slate-900/50 border border-slate-700 p-4 rounded-xl focus:outline-none focus:border-indigo-500 transition text-white">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 ml-1">Repetir</label>
+                        <input type="password" placeholder="••••••••" id="txtConfirmPwd"
+                            class="w-full bg-slate-900/50 border border-slate-700 p-4 rounded-xl focus:outline-none focus:border-indigo-500 transition text-white">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 py-4">
+                    <input type="checkbox" id="terms" class="accent-indigo-500 w-4 h-4">
+                    <label for="terms" class="text-xs text-slate-500">Acepto las reglas de la comunidad
+                        RetroWorld</label>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-white text-slate-900 font-black py-4 rounded-xl hover:bg-indigo-400 hover:text-white transition-all transform hover:-translate-y-1">
+                    CREAR CUENTA [START]
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-800 py-8 text-center text-slate-500 text-xs italic">
+        Level 1 Player Registration
+    </footer>
+    <script>
+        const SERVERIP = "localhost"
+
+        document.getElementById("registerForm").addEventListener("submit", async function (params) {
+            params.preventDefault()
+
+            const name = document.getElementById("txtName").value
+            const pwd = document.getElementById("txtPwd").value
+            const pwd2 = document.getElementById("txtConfirmPwd").value
+
+            if (pwd == pwd2) {
+                console.log("Intento de hacer registro recibido, llamando a la api...")
+                const response = await fetch(
+                    `http://${SERVERIP}:8080/registro/${name}/${pwd}`
+                )
+
+
+                //Misma logica que el login
+                try {
+                    const data = await response.json()
+                    console.log("Respuesta login:", data)
+
+                    if (data == false) {
+                        alert("registro fallido")
+                    } else {
+                        //Redirigir al usuario de vuelta a la pagina principal con su usuario loggeado
+                        localStorage.setItem("username", data.nombre)
+                        localStorage.setItem("usrID", data.id)
+                        localStorage.setItem("RETROWORLD-carro", "[]")
+                        window.location.href = localStorage.getItem("RETROGAMES-lastPage")
+                    }
+                } catch {
+                    alert("registro fallido")
+                }
+            } else {
+                alert("Las contraseñas no coinciden")
+            }
+        })
+    </script>
+</body>
+
+</html>

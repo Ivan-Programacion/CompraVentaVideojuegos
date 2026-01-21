@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetroGames - Mi Carrito</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700;900&display=swap');
+
+        .retro-title {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .body-text {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .wallet-card {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(15, 23, 42, 0.6) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .item-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+
+<body class="bg-[#0f172a] text-slate-200 body-text min-h-screen">
+
+    <nav class="sticky top-0 z-50 glass py-4 px-6 mb-12">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="Home.html" class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <i class="fa-solid fa-gamepad text-2xl text-white"></i>
+                </div>
+                <span class="retro-title text-sm tracking-tighter text-indigo-400">RETRO<br>WORLD</span>
+            </a>
+
+            <ul class="hidden md:flex gap-8 font-bold text-xs uppercase tracking-widest text-slate-400">
+                <li><a href="Home.html" class="hover:text-indigo-400 transition">Home</a></li>
+                <li><a href="Tienda.html" class="hover:text-indigo-400 transition">Tienda</a></li>
+                <li><a href="SubirJuego.html" class="hover:text-indigo-400 transition">Subir Juego</a></li>
+            </ul>
+
+            <div class="flex items-center gap-6">
+                <div class="relative" style="visibility: hidden">
+                    <i class="fa-solid fa-cart-shopping cursor-pointer hover:text-indigo-400"></i>
+                    <span class="absolute -top-2 -right-2 bg-rose-500 text-[10px] px-1.5 rounded-full font-bold"
+                        id="itemsInCart">3</span>
+                </div>
+
+                <button style="display:none" id="btnLogin" onclick="goToLogin()"
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-full font-bold text-sm transition shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+                    <i class="fa-solid fa-user mr-2"></i> LOGIN
+                </button>
+                <div class="relative group">
+                    <button style="display:none" id="btnUsr"
+                        class="flex items-center gap-2 focus:outline-none border-2 border-transparent group-hover:border-indigo-500/50 rounded-full transition p-1">
+                        <img src="https://ui-avatars.com/api/?name=Jaime&background=4f46e5&color=fff" id="avatar"
+                            class="w-9 h-9 rounded-full shadow-lg" alt="Avatar">
+                    </button>
+
+                    <div id="usrContent" class="absolute right-0 top-[100%] w-56 pt-3 hidden group-hover:block">
+                        <div class="bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-700 bg-slate-800/50">
+                                <p class="font-bold text-white">Hola, <span class="text-indigo-400"
+                                        id="username">Jaime</span></p>
+                            </div>
+                            <div class="py-2">
+                                <a href="MisJuegos.html"
+                                    class="block px-5 py-3 text-sm text-slate-300 hover:bg-indigo-600 hover:text-white transition flex items-center gap-3">
+                                    <i class="fa-solid fa-box-open"></i> Mis Juegos
+                                </a>
+                                <a href="Wallet.html"
+                                    class="block px-5 py-3 text-sm text-indigo-400 bg-indigo-500/10 transition flex items-center gap-3">
+                                    <i class="fa-solid fa-wallet"></i> Mi Wallet
+                                </a>
+                                <a href="#" onclick="cerrarSesion()"
+                                    class="block px-5 py-3 text-sm text-rose-400 hover:bg-rose-600 hover:text-white transition flex items-center gap-3">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-6 pb-20">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-black italic uppercase tracking-tighter mb-2">Mi <span
+                    class="text-indigo-500">Carrito</span></h1>
+            <p class="text-slate-500 text-xs tracking-widest uppercase italic">Revisa tu pedido antes del Checkout</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+
+            <div class="lg:col-span-2 space-y-4">
+                <div class="glass rounded-3xl overflow-hidden border border-slate-800" id="cart">
+
+                </div>
+
+                <a href="Tienda.html"
+                    class="inline-block text-slate-500 hover:text-indigo-400 font-bold text-xs uppercase tracking-widest transition">
+                    ← Seguir comprando
+                </a>
+            </div>
+
+            <div class="lg:col-span-1">
+                <div class="wallet-card rounded-3xl p-8 border border-indigo-500/20 sticky top-28">
+                    <h2 class="text-lg font-black uppercase italic mb-6 border-b border-indigo-500/20 pb-4">Resumen</h2>
+
+                    <div class="space-y-4 mb-8">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-400">Subtotal</span>
+                            <span class="font-bold text-white" id="subtotal">0€</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-400">Envío</span>
+                            <span class="text-emerald-400 font-bold uppercase">Instantáneo</span>
+                        </div>
+                        <div class="border-t border-slate-800 pt-4 flex justify-between items-end">
+                            <span class="text-xs font-bold uppercase tracking-widest text-indigo-400">Total a
+                                pagar</span>
+                            <span class="text-3xl font-black text-white italic tracking-tighter"
+                                id="total">0€</span>
+                        </div>
+                    </div>
+
+                    <button onclick="buyCart()"
+                        class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(79,70,229,0.3)] flex items-center justify-center gap-3 uppercase italic text-lg mb-4">
+                        <i class="fa-solid fa-bag-shopping"></i> Finalizar Pedido
+                    </button>
+
+                    <div
+                        class="flex items-center gap-2 justify-center text-[10px] text-slate-500 uppercase font-bold tracking-widest">
+                        <i class="fa-solid fa-lock text-emerald-500"></i> Pago 100% Seguro
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="py-12 text-center text-slate-700 text-[9px] retro-title">
+        RETROGAMES
+    </footer>
+
+    <script>
+        const SERVERIP = "localhost"
+        var precioTotal
+
+        //Preparamos la pagina
+        updateUsrButton()
+        updateCart()
+
+        //Llamamos a la API para obtener info de todos los juegos guardados en el carro
+        function updateCart() {
+            const cart = JSON.parse(localStorage.getItem("RETROWORLD-carro"))
+            console.log("Cargando carrito, IDs:", cart)
+            const cartDump = document.getElementById("cart")
+            cartDump.innerHTML = "" //Vaciamos el espacio visual
+            precioTotal = 0 //Reseteamos el precio por pantalla
+
+            cart.forEach(async (gameID) => { //funcion flecha asincrona para poder hacer un fetch dentro
+                const response = await fetch(
+                    `http://${SERVERIP}:8080/datosJuego/${gameID}`
+                )
+                const gameData = await response.json()
+
+                cartDump.insertAdjacentHTML("beforeend", //Montamos la tarjeta del juego
+                    `
+                    <div class="item-row p-6 flex items-center justify-between border-b border-slate-800/50 transition">
+                        <div class="flex items-center gap-5">
+                            <img src="${gameData.imagen.replaceAll("🗿", "/")}" class="w-16 h-20 object-cover rounded-xl shadow-lg shadow-black/50" alt="${gameData.nombre}">
+                            <div>
+                                <h3 class="font-bold text-white uppercase italic tracking-tight">${gameData.nombre}</h3>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xl font-black text-white">${(gameData.precio).toFixed(2)}€</p>
+                            <button class="text-rose-500 hover:text-rose-400 text-[10px] font-bold uppercase mt-1 transition" onclick="removeFromCart('${gameData.id}')">Eliminar</button>
+                        </div>
+                    </div>
+                    `
+                )
+
+                precioTotal += gameData.precio //Aumentamos el precio total cada iteracion
+                const subtotal = document.getElementById("subtotal").innerHTML = precioTotal.toFixed(2) + "€"
+                const total = document.getElementById("total").innerHTML = precioTotal.toFixed(2) + "€"
+                
+            })
+            //Debido a que el foreach es asincrono, cualquier cosa escrita aquí, despues de el, se ejecuta sin esperar a que termine.
+            //Por ello actualizamos el precio total a cada iteracion
+        }
+
+        //Funcion que todas las cartas llaman con su texto de eliminar onclick
+        function removeFromCart(id) {
+            let cart = JSON.parse(localStorage.getItem("RETROWORLD-carro"))
+
+            console.log("Eliminando juego con id", id)
+
+            var index = cart.indexOf(id);
+            
+            if (index > -1) {
+                //Los arrays de JS no tienen metodo de eliminar objetos especificos, se elimina haciendo un splice, que permite arrancar "segmentos"
+                //splice(indice de inicio del segmento, longitudo del segmento)
+                cart.splice(index, 1); 
+                localStorage.setItem("RETROWORLD-carro", JSON.stringify(cart))
+                updateCart()
+            }
+        }
+
+        //La llamada al endpoint mas grande
+        async function buyCart() {
+            const cart = JSON.parse(localStorage.getItem("RETROWORLD-carro"))
+            const userID = localStorage.getItem("usrID")
+
+            if (userID != null) { //Nos aseguramos de que hay usuario y contenido en el carro
+                if (cart.length > 0) {
+                    console.log("Intentando comprar carro...", cart)
+                    const response = await fetch(
+                        `http://${SERVERIP}:8080/comprarCarrito/${userID}/${cart}`
+                    )
+                    try {
+                        const result = await response.json()
+                        //el resultado se resume a un booleano, el servidor no revela las causas del fallo
+                        if (result == false) {
+                            alert("Ha habido un error durante la compra")
+                        } else {
+                            alert("Gracias por tu compra, puedes ver el/los juego/s en tu inventario!")
+
+                            //Vaciamos el carro actual
+                            localStorage.setItem("RETROWORLD-carro", "[]")
+                            updateCart()
+                        }
+                    } catch { //Por si acaso
+                        alert("Ha habido un error durante la compra")
+                    }
+                } else {
+                    alert("No tienes ningun producto en tu carrito")
+                }
+            } else { //Tecnicamente inalcanzable?
+                alert("Tienes que haber iniciado sesion para comprar")
+
+            }
+        }
+
+        function goToLogin() { //Tecnicamente inalcanzabe?
+            localStorage.setItem("RETROGAMES-lastPage", "Home.html")
+            window.location.href = "Login.html"
+        }
+
+        function cerrarSesion() { 
+            localStorage.removeItem("usrID")
+            localStorage.removeItem("username")
+            localStorage.removeItem("RETROWORLD-carro")
+            window.location.href = "Home.html" //Pagina inaccesible para usuarios sin iniciar sesion
+            updateUsrButton()
+        }
+
+        function updateUsrButton() {
+            if (localStorage.getItem("usrID") == null) {
+                document.getElementById("btnLogin").style.display = "block"
+                document.getElementById("btnUsr").style.display = "none"
+                document.getElementById("usrContent").style.display = "none"
+            } else {
+                document.getElementById("avatar").src = `https://ui-avatars.com/api/?name=${localStorage.getItem("username")}&background=4f46e5&color=fff`
+                document.getElementById("username").innerHTML = localStorage.getItem("username")
+                document.getElementById("btnLogin").style.display = "none"
+                document.getElementById("btnUsr").style.display = "block"
+            }
+        }
+    </script>
+</body>
+
+</html>

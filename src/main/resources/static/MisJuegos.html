@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetroGames - Mi Inventario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700;900&display=swap');
+
+        .retro-title {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .body-text {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+
+<body class="bg-[#0f172a] text-slate-200 body-text min-h-screen">
+
+    <nav class="sticky top-0 z-50 glass py-4 px-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+
+            <a href="Home.html" class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <i class="fa-solid fa-gamepad text-2xl text-white"></i>
+                </div>
+                <span class="retro-title text-sm tracking-tighter text-indigo-400">RETRO<br>WORLD</span>
+            </a>
+
+            <ul class="hidden md:flex gap-8 font-bold text-xs uppercase tracking-widest text-slate-400">
+                <li><a href="Home.html" class="hover:text-indigo-400 cursor-pointer transition">Home</a></li>
+                <li><a href="Tienda.html" class="hover:text-indigo-400 cursor-pointer transition">Tienda</a></li>
+                <li><a href="SubirJuego.html" class="hover:text-indigo-400 cursor-pointer transition">Subir Juego</a>
+                </li>
+            </ul>
+
+            <div class="flex items-center gap-6">
+                <div class="relative">
+                    <i class="fa-solid fa-cart-shopping cursor-pointer hover:text-indigo-400" onclick="goToCart()"></i>
+                    <span class="absolute -top-2 -right-2 bg-rose-500 text-[10px] px-1.5 rounded-full font-bold"
+                        id="itemsInCart">3</span>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <button style="display:none" id="btnLogin" onclick="goToLogin()"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-full font-bold text-sm transition shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+                        <i class="fa-solid fa-user mr-2"></i> LOGIN
+                    </button>
+                    <div class="relative group">
+                        <button style="display:none" id="btnUsr"
+                            class="flex items-center gap-2 focus:outline-none border-2 border-transparent group-hover:border-indigo-500/50 rounded-full transition p-1">
+                            <img src="https://ui-avatars.com/api/?name=Jaime&background=4f46e5&color=fff" id="avatar"
+                                class="w-9 h-9 rounded-full shadow-lg" alt="Avatar">
+                        </button>
+
+
+                        <div id="usrContent" class="absolute right-0 top-[100%] w-56 pt-3 hidden group-hover:block">
+                            <div class="bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                                <div class="px-5 py-4 border-b border-slate-700 bg-slate-800/50">
+                                    <p class="font-bold text-white">Hola, <span class="text-indigo-400"
+                                            id="username">Jaime</span></p>
+                                </div>
+                                <div class="py-2">
+                                    <a href="MisJuegos.html"
+                                        class="block px-5 py-3 text-sm text-slate-300 hover:bg-indigo-600 hover:text-white transition flex items-center gap-3">
+                                        <i class="fa-solid fa-box-open"></i> Mis Juegos
+                                    </a>
+                                    <a href="Wallet.html"
+                                        class="block px-5 py-3 text-sm text-indigo-400 bg-indigo-500/10 transition flex items-center gap-3">
+                                        <i class="fa-solid fa-wallet"></i> Mi Wallet
+                                    </a>
+                                    <a href="#" onclick="cerrarSesion()"
+                                        class="block px-5 py-3 text-sm text-rose-400 hover:bg-rose-600 hover:text-white transition flex items-center gap-3">
+                                        <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-16">
+
+        <div class="flex justify-between items-end border-b border-slate-800 pb-8">
+            <div>
+                <h1 class="text-5xl font-black uppercase tracking-tighter italic">Mi Inventario</h1>
+                <p class="text-indigo-400 text-sm font-bold tracking-widest uppercase mt-2">Gestión de estado de tus
+                    artículos</p>
+            </div>
+            <a href="SubirJuego.html"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-black transition flex items-center gap-2 uppercase text-[10px] shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-plus"></i> Añadir Nuevo
+            </a>
+        </div>
+
+        <section id="comprados">
+            <h2 class="retro-title text-[10px] text-cyan-400 mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-circle text-[6px]"></i> COMPRADOS
+            </h2>
+            <div class="space-y-4" id="boughtGames">
+
+            </div>
+        </section>
+
+        <section id="aprobados">
+            <h2 class="retro-title text-[10px] text-emerald-400 mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-circle text-[6px]"></i> APROBADOS
+            </h2>
+            <div class="space-y-4" id="approvedGames">
+
+            </div>
+        </section>
+
+        <section id="pendientes">
+            <h2 class="retro-title text-[10px] text-amber-400 mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-circle text-[6px]"></i> PENDIENTES DE REVISIÓN
+            </h2>
+            <div class="space-y-4" id="pendingGames">
+
+            </div>
+        </section>
+
+        <section id="rechazados">
+            <h2 class="retro-title text-[10px] text-rose-500 mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-circle text-[6px]"></i> RECHAZADOS
+            </h2>
+            <div class="space-y-4" id="deniedGames">
+
+            </div>
+
+        </section>
+
+        <section id="vendidos">
+            <h2 class="retro-title text-[10px] text-blue-400 mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-circle text-[6px]"></i> VENDIDOS
+            </h2>
+            <div class="space-y-4" id="soldGames">
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-slate-800 py-12 px-6 text-center text-slate-500">
+        <p class="text-sm">© 2026 RetroWorld Store - Panel de Vendedor.</p>
+    </footer>
+    <script>
+        const SERVERIP = "localhost"
+
+        //Montaje inicial
+        updateUsrButton()
+        fetchAndBuildMySoldGames()
+        fetchAndBuildMyBoughtGames()
+        updateItemsInCart()
+
+        //Localiza todos los juegos que tiene el usuario registrado en venta
+        async function fetchAndBuildMySoldGames() {
+            console.log("Haciendo fetch de mis juegos vendidos")
+            const currentUserId = localStorage.getItem("usrID");
+            const response = await fetch(
+                `http://${SERVERIP}:8080/misJuegosEnVenta/${localStorage.getItem("usrID")}`
+            )
+            const games = await response.json()
+            //console.log("Respuesta", games)
+
+            //Vaciamos las secciones en las que vamos a meter juegos
+            const secciones = ["boughtGames", "approvedGames", "pendingGames", "deniedGames", "soldGames"];
+            secciones.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = "";
+            });
+
+            //Recorremos todos los juegos sacados del fetch, notoriamente, esto no revela la informacion del comprador
+            games.forEach(async (game) => {
+                //aceptado, comprador_id, id, imagen, nombre, precio, revisado, vendedor_id
+                const id = game.id
+                const img = decodeURI(game.imagen.replaceAll("🗿", "/")) //TECNOLOGIA MOAI
+                const title = game.nombre
+                const price = game.precio
+                if (currentUserId != null && game.vendedor_id == currentUserId) {
+                    if (game.revisado) {
+                        if (game.aceptado) {
+                            if (game.comprador_id != 0) { //Tenemos que hacer un segundo fetch para distinguir si ha sido comprado o no
+                                const response2 = await fetch(`http://${SERVERIP}:8080/verUsuario/${game.comprador_id}`)
+                                const sellerName = await response2.text();
+                                document.getElementById("soldGames").insertAdjacentHTML('beforeend',
+                                    `
+                                <div
+                                    class="glass p-4 rounded-2xl flex items-center justify-between border-l-8 border-blue-500 bg-blue-500/5 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                                    <div class="flex items-center gap-6">
+                                        <img src="${img}"
+                                            class="w-14 h-20 object-cover rounded-lg shadow-lg border border-blue-500/30">
+                                        <div>
+                                            <h3 class="font-black text-white uppercase italic">${title}</h3>
+                                            <p class="text-xs font-mono text-emerald-400">STATUS: Vendido a ${sellerName}
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-8">
+                                        <p class="text-2xl font-black text-white italic">${price.toFixed(2)}€</p>
+                                            <button style="visibility: hidden"
+                                                class="p-3 bg-slate-800 hover:bg-rose-600 rounded-xl transition text-xs text-white"><i
+                                                    class="fa-solid fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                `)
+                            } else {
+                                document.getElementById("approvedGames").insertAdjacentHTML('beforeend',
+                                    `
+                                <div
+                                    class="glass p-4 rounded-2xl flex items-center justify-between border-l-8 border-emerald-500 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                                    <div class="flex items-center gap-6">
+                                        <img src="${img}"
+                                            class="w-14 h-20 object-cover rounded-lg shadow-lg border border-emerald-500/30">
+                                        <div>
+                                            <h3 class="font-black text-white uppercase italic">${title}</h3>
+                                            <p class="text-xs font-mono text-emerald-400">STATUS: ACTIVO
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-8">
+                                        <p class="text-2xl font-black text-white italic">${price.toFixed(2)}€</p>
+                                        <div class="flex gap-2">
+                                            <button
+                                                class="p-3 bg-slate-800 hover:bg-rose-600 rounded-xl transition text-xs text-white"><i
+                                                    class="fa-solid fa-trash" onclick="deleteGame(${id})"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                `)
+                            }
+
+                        } else {
+                            document.getElementById("deniedGames").insertAdjacentHTML('beforeend',
+                                `
+                                <div
+                                    class="glass p-4 rounded-2xl flex items-center justify-between border-l-8 border-rose-900 bg-slate-900/50 opacity-60 grayscale hover:grayscale-0 transition duration-300">
+                                    <div class="flex items-center gap-6">
+                                        <div class="relative">
+                                            <img src="${img}"
+                                                class="w-14 h-20 object-cover rounded-lg border border-rose-900/50">
+                                            <div class="absolute inset-0 bg-rose-900/20 rounded-lg"></div>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-black text-slate-500 uppercase italic line-through">${title}</h3>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-8">
+                                        <span
+                                            class="text-[10px] font-black text-rose-900 border border-rose-900/30 px-3 py-1 rounded uppercase">Bloqueado</span>
+                                        <button
+                                                class="p-3 bg-slate-800 hover:bg-rose-600 rounded-xl transition text-xs text-white"><i
+                                                    class="fa-solid fa-trash" onclick="deleteGame(${id})"></i></button>
+                                    </div>
+                                </div>
+                                `
+                            )
+                        }
+                    } else {
+                        document.getElementById("pendingGames").insertAdjacentHTML('beforeend',
+                            `<div
+                            class="glass p-4 rounded-2xl flex items-center justify-between border-l-8 border-amber-500 bg-amber-500/5 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                            <div class="flex items-center gap-6">
+                                <img src="${img}"
+                                    class="w-14 h-20 object-cover rounded-lg shadow-lg border border-amber-500/30">
+                                <div>
+                                    <h3 class="font-black text-slate-200 uppercase italic">${title}</h3>
+                                    <p class="text-xs font-mono text-amber-500 italic">STATUS: PENDING_REVIEW...</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-8">
+                                <p class="text-2xl font-black text-slate-300 italic">${price.toFixed(2)}€</p>
+                                <div class="flex gap-2">
+                                    <button class="p-3 bg-slate-800 hover:bg-rose-600 rounded-xl transition text-xs text-white"
+                                        title="Cancelar subida" onclick="deleteGame(${id})"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        `)
+                    }
+                }
+
+            });
+        }
+        //Los juegos que hemos comprado se obtienen de otro endpoint
+        async function fetchAndBuildMyBoughtGames() {
+            console.log("Haciendo fetch de mis juegos comprados")
+            const currentUserId = localStorage.getItem("usrID");
+            const response = await fetch(
+                `http://${SERVERIP}:8080/misJuegosComprados/${currentUserId}`
+            )
+            const games = await response.json()
+
+            //Y otro mas para las "claves de activación"
+            const responseIDs = await fetch(
+                `http://${SERVERIP}:8080/clavesJuegosComprados/${currentUserId}`
+            )
+            const IDs = await responseIDs.json()
+            //console.log(IDs)
+
+            //La logica de la construccion no cambia nada realmente
+            games.forEach(game => {
+                document.getElementById("boughtGames").insertAdjacentHTML('beforeend', `
+                        <div class="glass p-4 rounded-2xl flex items-center justify-between border-l-8 border-cyan-500 bg-cyan-500/5 shadow-[0_0_15px_rgba(6,182,212,0.1)] mb-4">
+                            <div class="flex items-center gap-6">
+                                <img src="${decodeURI(game.imagen.replaceAll("🗿", "/"))}" class="w-14 h-20 object-cover rounded-lg shadow-lg border border-cyan-500/30">
+                                <div>
+                                    <h3 class="font-black text-white uppercase italic">${game.nombre}</h3>
+                                    <p class="text-xs font-mono text-cyan-400">STATUS: PROPIEDAD ADQUIRIDA</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Código de Activación</span>
+                                <div class="bg-slate-900/80 border border-cyan-500/50 px-4 py-2 rounded-lg shadow-inner">
+                                    <code class="text-cyan-400 font-mono font-bold text-sm tracking-wider">${IDs[game.id]}</code>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+            });
+        }
+
+
+        //Funcion que se introduce a los onclicks de los botones de borrar con sus respectivas IDs
+        async function deleteGame(id) {
+            console.log("Peticion de borrar juego", id)
+
+            //Genera una alerta con 2 botones
+            //https://stackoverflow.com/questions/2054082/javascript-alert-with-3-buttons
+            var r = confirm("Segur@ que quieres eliminar este juego?\nEsta accion es PERMANENTE");
+            //Si el usuario acepta llamamos al endpoint de borrar
+            if (r == true) {
+                //@GetMapping("/borrarJuego/{idJuego}/{idVendedor}")
+                const currentUserId = localStorage.getItem("usrID");
+                const response = await fetch(
+                    `http://${SERVERIP}:8080/borrarJuego/${id}/${currentUserId}`
+                )
+                const resultado = await response.json()
+                
+                //Si el resultado da true, ya se ha borrado de la base de datos y podemos regenerar la seccion
+                if (resultado) {
+                    //Solo hace falta regenerar los juegos en venta porque no podemos borrar los ya vendidos
+                    fetchAndBuildMySoldGames()
+                } else {
+                    alert("Error al borrar el juego")
+                }
+            }
+            else {
+                console.log("Peticion cancelada")
+            }
+
+        }
+
+        function goToLogin() {
+            localStorage.setItem("RETROGAMES-lastPage", "MisJuegos.html")
+            window.location.href = "Login.html"
+        }
+
+        function goToCart() {
+            if (localStorage.getItem("usrID") != null)
+                window.location.href = "Carrito.html"
+            else {
+                alert("Tienes que haber iniciado sesion para acceder al carro")
+            }
+        }
+
+
+        function cerrarSesion() {
+            localStorage.removeItem("usrID")
+            localStorage.removeItem("username")
+            window.location.href = "Home.html" //Esta pagina no es accesible si no estas loggeado, así que desloggear te echa
+            updateUsrButton()
+            updateItemsInCart()
+        }
+
+        function updateUsrButton() {
+            if (localStorage.getItem("usrID") == null) {
+                document.getElementById("btnLogin").style.display = "block"
+                document.getElementById("btnUsr").style.display = "none"
+                document.getElementById("usrContent").style.display = "none"
+            } else {
+                document.getElementById("avatar").src = `https://ui-avatars.com/api/?name=${localStorage.getItem("username")}&background=4f46e5&color=fff`
+                document.getElementById("username").innerHTML = localStorage.getItem("username")
+                document.getElementById("btnLogin").style.display = "none"
+                document.getElementById("btnUsr").style.display = "block"
+            }
+        }
+
+        function updateItemsInCart() {
+            const cart = JSON.parse(localStorage.getItem("RETROWORLD-carro"))
+            const target = document.getElementById("itemsInCart")
+            if (cart != null && cart.length > 0) {
+                target.innerHTML = cart.length
+                target.hidden = false
+            } else {
+                target.hidden = true
+            }
+        }
+    </script>
+</body>
+
+</html>

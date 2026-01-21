@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetroGames - Detalles del Juego</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700;900&display=swap');
+
+        .retro-title {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .body-text {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body class="bg-[#0f172a] text-slate-200 body-text min-h-screen">
+
+    <nav class="sticky top-0 z-50 glass py-4 px-6 mb-8">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+
+            <a href="Home.html" class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <i class="fa-solid fa-gamepad text-2xl text-white"></i>
+                </div>
+                <span class="retro-title text-sm tracking-tighter text-indigo-400">RETRO<br>WORLD</span>
+            </a>
+
+            <ul class="hidden md:flex gap-8 font-bold text-xs uppercase tracking-widest text-slate-400">
+                <li><a href="Home.html" class="hover:text-indigo-400 cursor-pointer transition">Home</a></li>
+                <li><a href="Tienda.html" class="hover:text-indigo-400 cursor-pointer transition">Tienda</a></li>
+                <li><a href="SubirJuego.html" class="hover:text-indigo-400 cursor-pointer transition">Subir Juego</a>
+                </li>
+            </ul>
+
+            <div class="flex items-center gap-6">
+                <div class="relative">
+                    <i class="fa-solid fa-cart-shopping cursor-pointer hover:text-indigo-400" onclick="goToCart()"></i>
+                    <span class="absolute -top-2 -right-2 bg-rose-500 text-[10px] px-1.5 rounded-full font-bold"
+                        id="itemsInCart">3</span>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <button style="display:none" id="btnLogin" onclick="goToLogin()"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-full font-bold text-sm transition shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+                        <i class="fa-solid fa-user mr-2"></i> LOGIN
+                    </button>
+                    <div class="relative group">
+                        <button style="display:none" id="btnUsr"
+                            class="flex items-center gap-2 focus:outline-none border-2 border-transparent group-hover:border-indigo-500/50 rounded-full transition p-1">
+                            <img src="https://ui-avatars.com/api/?name=Jaime&background=4f46e5&color=fff" id="avatar"
+                                class="w-9 h-9 rounded-full shadow-lg" alt="Avatar">
+                        </button>
+
+                        <div id="usrContent" class="absolute right-0 top-[100%] w-56 pt-3 hidden group-hover:block">
+                            <div class="bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                                <div class="px-5 py-4 border-b border-slate-700 bg-slate-800/50">
+                                    <p class="font-bold text-white">Hola, <span class="text-indigo-400"
+                                            id="username">Jaime</span></p>
+                                </div>
+                                <div class="py-2">
+                                    <a href="MisJuegos.html"
+                                        class="block px-5 py-3 text-sm text-slate-300 hover:bg-indigo-600 hover:text-white transition flex items-center gap-3">
+                                        <i class="fa-solid fa-box-open"></i> Mis Juegos
+                                    </a>
+                                    <a href="Wallet.html"
+                                        class="block px-5 py-3 text-sm text-indigo-400 bg-indigo-500/10 transition flex items-center gap-3">
+                                        <i class="fa-solid fa-wallet"></i> Mi Wallet
+                                    </a>
+                                    <a href="#" onclick="cerrarSesion()"
+                                        class="block px-5 py-3 text-sm text-rose-400 hover:bg-rose-600 hover:text-white transition flex items-center gap-3">
+                                        <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-12">
+        <div class="mb-8">
+            <a href="Tienda.html"
+                class="text-indigo-400 hover:text-indigo-300 text-sm font-bold flex items-center gap-2 transition">
+                <i class="fa-solid fa-arrow-left"></i> Volver a la Tienda
+            </a>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-16">
+            <div class="w-full lg:w-1/2">
+                <div class="glass p-4 rounded-3xl border border-indigo-500/20 shadow-2xl">
+                    <img src="https://m.media-amazon.com/images/I/81vSOnG65PL._AC_SL1500_.jpg" id="img"
+                        class="w-full h-[500px] object-contain rounded-2xl" alt="Imagen del juego">
+                </div>
+            </div>
+
+            <div class="w-full lg:w-1/2 flex flex-col">
+                <h1 class="text-5xl font-black mb-2 text-white leading-none uppercase italic tracking-tighter"
+                    id="title">
+                    The legend of zelda
+                </h1>
+
+                <div
+                    class="glass p-6 rounded-2xl border-l-4 border-l-indigo-500 mb-10 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Precio Final</p>
+                        <p class="text-4xl font-black text-white" id="price">89.95€</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 mb-10">
+                    <button onclick="buyNow()"
+                        class="flex-grow bg-white text-slate-900 font-black py-5 rounded-2xl transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(255,255,255,0.2)] flex items-center justify-center gap-3 uppercase italic text-lg">
+                        <i class="fa-solid fa-bolt"></i> COMPRAR AHORA
+                    </button>
+
+                    <button onclick="addToCart()"
+                        class="flex-grow bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(79,70,229,0.3)] flex items-center justify-center gap-3 uppercase text-lg">
+                        <i class="fa-solid fa-cart-plus"></i> AL CARRITO
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 border-t border-slate-800 pt-8">
+                    <div>
+                        <p class="text-[9px] text-indigo-400 font-bold uppercase mb-1">Vendedor</p>
+                        <p class="text-sm font-bold" id="seller">Usuario</p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] text-indigo-400 font-bold uppercase mb-1">Estado</p>
+                        <p class="text-sm font-bold text-emerald-400" id="status">DISPONIBLE</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="py-12 text-center text-slate-700 text-[9px] retro-title">
+        RETROWORLD SECURE TRANSACTION MODULE
+    </footer>
+    <script>
+        const SERVERIP = "localhost"
+        const urlParams = new URLSearchParams(window.location.search)
+        const gameID = urlParams.get("id") //Rescatamos el parametro de esta pagina
+
+        //El juego podria dejar de estar disponible cuando le haces click, revisamos una vez mas cuando montamos los datos
+        available = true
+
+        //Generacion de pagina
+        buildGameDetails()
+        updateUsrButton()
+        updateItemsInCart()
+
+        //Funcion principal de esta pagina
+        async function buildGameDetails() {
+            console.log("Haciendo fetch del juego con id", gameID)
+            const response = await fetch(
+                `http://${SERVERIP}:8080/datosJuego/${gameID}`
+            )
+            const gameData = await response.json()
+            //console.log("Respuesta", gameData)
+
+            document.getElementById("title").innerHTML = gameData.nombre
+            document.getElementById("img").src = decodeURI(gameData.imagen.replaceAll("🗿", "/"))
+            document.getElementById("price").innerHTML = (gameData.precio).toFixed(2) + "€"
+            const status = document.getElementById("status")
+
+            if (gameData.comprador_id == 0) {
+                //Actualizamos la linea de estado al estado correcto
+                status.innerHTML = "DISPONIBLE"
+                available = true
+            } else {
+                status.innerHTML = "NO DISPONIBLE"
+                status.style = "color: red"
+                available = false
+            }
+
+            //Buscamos al comprador y lo mostramos
+            const response2 = await fetch(`http://${SERVERIP}:8080/verUsuario/${gameData.vendedor_id}`)
+            const sellerName = await response2.text()
+
+            document.getElementById("seller").innerHTML = sellerName
+        }
+
+        //Boton de añadir al carro
+        function addToCart() {
+            try {
+                //Primero hay que localizarlo y parsearlo
+                const cartContent = JSON.parse(localStorage.getItem("RETROWORLD-carro"))
+                //console.log(cartContent)
+                if (!cartContent.includes(gameID)) {
+                    cartContent.push(gameID) //lo añadimos al array
+                    localStorage.setItem("RETROWORLD-carro", JSON.stringify(cartContent)) // y reemplazamos la memoria
+                    updateItemsInCart()
+                } else {
+                    //Nuestros juegos son unicos, no pueden comprarse varias veces
+                    alert("Ya tienes este juego en el carro")
+                }
+            } catch {
+                alert("Tienes que haber iniciado sesion para añadir al carro")
+            }
+        }
+
+        //Boton que compra directamente
+        async function buyNow() {
+            const userID = localStorage.getItem("usrID")
+            if (userID != null) {
+                //Simula un carro de un solo objeto para hacer la llamada, por lo que almacenamos la ID en un array antes
+                let requestList = [gameID]
+                const response = await fetch( //El fetch solo acepta listas
+                    `http://${SERVERIP}:8080/comprarCarrito/${userID}/${requestList}`
+                )
+                const result = await response.json()
+
+                //el resultado se da en boolean
+                if (result == false) {
+                    //El servidor no revela la razon del fallo
+                    alert("Ha habido un error durante la compra")
+                } else {
+                    alert("Gracias por tu compra, puedes ver el/los juego/s en tu inventario!")
+
+                    //Y eliminamos el juego del carro si lo ha metido antes
+                    let cart = JSON.parse(localStorage.getItem("RETROWORLD-carro"))
+                    console.log("Eliminando juego con id del carro", gameID)
+                    var index = cart.indexOf(gameID);
+                    console.log(index)
+                    if (index > -1) {
+                        cart.splice(index, 1);
+                        localStorage.setItem("RETROWORLD-carro", JSON.stringify(cart))
+                    }
+                    //Con la compra completada, los detalles de ese juego concreto se vuelven inaccesibles
+                    window.location.href = "Home.html"
+                }
+            } else {
+                alert("Tienes que haber iniciado sesion para comprar")
+            }
+        }
+
+        function goToLogin() { //Deberia ser inaccesible
+            localStorage.setItem("RETROGAMES-lastPage", "Tienda.html")
+            window.location.href = "Login.html"
+        }
+
+        function goToCart() {
+            if (localStorage.getItem("usrID") != null)
+                window.location.href = "Carrito.html"
+            else {
+                alert("Tienes que haber iniciado sesion para acceder al carro")
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem("usrID")
+            localStorage.removeItem("username")
+            localStorage.removeItem("RETROWORLD-carro")
+            updateUsrButton()
+            updateItemsInCart()
+        }
+
+        function updateUsrButton() {
+            if (localStorage.getItem("usrID") == null) {
+                document.getElementById("btnLogin").style.display = "block"
+                document.getElementById("btnUsr").style.display = "none"
+                document.getElementById("usrContent").style.display = "none"
+            } else {
+                document.getElementById("avatar").src = `https://ui-avatars.com/api/?name=${localStorage.getItem("username")}&background=4f46e5&color=fff`
+                document.getElementById("username").innerHTML = localStorage.getItem("username")
+                document.getElementById("btnLogin").style.display = "none"
+                document.getElementById("btnUsr").style.display = "block"
+            }
+        }
+
+        function updateItemsInCart() {
+            const cart = JSON.parse(localStorage.getItem("RETROWORLD-carro"))
+            const target = document.getElementById("itemsInCart")
+            if (cart != null && cart.length > 0) {
+                target.innerHTML = cart.length
+                target.hidden = false
+            } else {
+                target.hidden = true
+            }
+        }
+    </script>
+</body>
+
+</html>
