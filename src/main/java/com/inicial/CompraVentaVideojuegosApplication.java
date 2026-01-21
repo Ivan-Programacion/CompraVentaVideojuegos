@@ -96,31 +96,33 @@ public class CompraVentaVideojuegosApplication {
 	// - listarUsuarios
 	// - juegosEnVentaPorUsuario (utilizar misJuegosEnVenta)
 
-	@GetMapping("/crear")
-	public String crearTabla() {
-		// Eliminamos si existen
-		jdbcTemplate.execute("DROP TABLE IF EXISTS juegos");
-		jdbcTemplate.execute("DROP TABLE IF EXISTS usuarios");
-		// Creamos las dos tablas
-		jdbcTemplate.execute("CREATE TABLE usuarios (\n" + "                    id BIGINT AUTO_INCREMENT PRIMARY KEY,\n"
-				+ "                    nombre VARCHAR(100) NOT NULL UNIQUE,\n"
-				+ "                    pwd VARCHAR(255) NOT NULL,\n"
-				+ "                    saldo DECIMAL(10, 2) DEFAULT 0.00,\n"
-				+ "                    admin BOOLEAN DEFAULT FALSE)");
-		jdbcTemplate.execute("CREATE TABLE juegos (\n" + "                    id BIGINT AUTO_INCREMENT PRIMARY KEY,\n"
-				+ "                    nombre VARCHAR(150) NOT NULL,\n" + "                    imagen VARCHAR(255),\n"
-				+ "                    precio DECIMAL(10, 2) NOT NULL,\n"
-				+ "                    clave VARCHAR(255) NOT NULL UNIQUE,\n"
-				+ "                    aceptado BOOLEAN DEFAULT FALSE,\n"
-				+ "                    revisado BOOLEAN DEFAULT FALSE,\n"
-				+ "                    vendedor_id BIGINT NOT NULL,\n"
-				+ "                    comprador_id BIGINT DEFAULT NULL,\n"
-				+ "                    CONSTRAINT fk_vendedor FOREIGN KEY (vendedor_id) REFERENCES usuarios(id) ON DELETE CASCADE,\n"
-				+ "                    CONSTRAINT fk_comprador FOREIGN KEY (comprador_id) REFERENCES usuarios(id) ON DELETE SET NULL)");
-		jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", NOMBRE_TIENDA, "", 0,
-				true);
-		return "Se han creado las tablas correctamente";
-	}
+	// Con este método se crea la base de datos. Descomentar del codigo para crear
+	// de 0
+//	@GetMapping("/crear")
+//	public String crearTabla() {
+//		// Eliminamos si existen
+//		jdbcTemplate.execute("DROP TABLE IF EXISTS juegos");
+//		jdbcTemplate.execute("DROP TABLE IF EXISTS usuarios");
+//		// Creamos las dos tablas
+//		jdbcTemplate.execute("CREATE TABLE usuarios (\n" + "                    id BIGINT AUTO_INCREMENT PRIMARY KEY,\n"
+//				+ "                    nombre VARCHAR(100) NOT NULL UNIQUE,\n"
+//				+ "                    pwd VARCHAR(255) NOT NULL,\n"
+//				+ "                    saldo DECIMAL(10, 2) DEFAULT 0.00,\n"
+//				+ "                    admin BOOLEAN DEFAULT FALSE)");
+//		jdbcTemplate.execute("CREATE TABLE juegos (\n" + "                    id BIGINT AUTO_INCREMENT PRIMARY KEY,\n"
+//				+ "                    nombre VARCHAR(150) NOT NULL,\n" + "                    imagen VARCHAR(255),\n"
+//				+ "                    precio DECIMAL(10, 2) NOT NULL,\n"
+//				+ "                    clave VARCHAR(255) NOT NULL UNIQUE,\n"
+//				+ "                    aceptado BOOLEAN DEFAULT FALSE,\n"
+//				+ "                    revisado BOOLEAN DEFAULT FALSE,\n"
+//				+ "                    vendedor_id BIGINT NOT NULL,\n"
+//				+ "                    comprador_id BIGINT DEFAULT NULL,\n"
+//				+ "                    CONSTRAINT fk_vendedor FOREIGN KEY (vendedor_id) REFERENCES usuarios(id) ON DELETE CASCADE,\n"
+//				+ "                    CONSTRAINT fk_comprador FOREIGN KEY (comprador_id) REFERENCES usuarios(id) ON DELETE SET NULL)");
+//		jdbcTemplate.update("insert into usuarios (nombre, pwd, saldo, admin) values (?,?,?,?)", NOMBRE_TIENDA, "", 0,
+//				true);
+//		return "Se han creado las tablas correctamente";
+//	}
 
 	/**
 	 * Endpoint que realiza la acción de compra del usuario de todo el carrito
@@ -588,9 +590,10 @@ public class CompraVentaVideojuegosApplication {
 		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new ListarJuegos(), idUsuario);
 
 	}
-	
+
 	/**
 	 * Método que devuelve las claves de los juegos comprados de un usuario
+	 * 
 	 * @param idUsuario
 	 * @return
 	 */
