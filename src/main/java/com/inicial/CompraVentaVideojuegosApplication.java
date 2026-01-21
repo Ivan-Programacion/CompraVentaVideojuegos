@@ -318,6 +318,7 @@ public class CompraVentaVideojuegosApplication {
 	 *         algún problema y no lo ha borrado
 	 */
 	@GetMapping("/borrarJuego/{idJuego}/{idVendedor}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean borrarJuego(@PathVariable Long idJuego, @PathVariable Long idVendedor) {
 		List<Juego> juegos = jdbcTemplate.query("select * from juegos where id = ? and vendedor_id = ?",
 				new ListarJuegos(), idJuego, idVendedor);
