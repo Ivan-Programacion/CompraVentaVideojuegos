@@ -84,6 +84,7 @@ public class CompraVentaVideojuegosApplication {
 	// - verUsuario ------------> CHECK
 	// - buscarJuego (filtro busqueda) ------------> CHECK
 	// - misJuegosComprados ------------> CHECK
+	// - clavesJuegosComprados -----------> CHECK
 	//
 	// ADMIN
 	// - aprobarJuego ------------> CHECK
@@ -126,20 +127,20 @@ public class CompraVentaVideojuegosApplication {
 	 * 
 	 * @param idComprador
 	 * @param juegos
-	 * @return devuelve un JSON con los ID de los juegos y su clave para canjearlo,
-	 *         o nulo en caso de que haya ocurrido algún error
+	 * @return Devuelve true si se ha realizado con exito, o false si hubo algún
+	 *         error
 	 */
 	@GetMapping("/comprarCarrito/{idComprador}/{juegos}")
 	@Transactional // --> Para que cumpla con los requisitos de Transacción y no haya errores en
 					// Base de Datos
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
-	public HashMap<Long, String> comprarCarrito(@PathVariable Long idComprador, @PathVariable List<Long> juegos) {
+	public boolean comprarCarrito(@PathVariable Long idComprador, @PathVariable List<Long> juegos) {
 		try {
 			// Miramos si el usuario existe
 			List<Usuario> usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
 					idComprador);
 			if (usuarios.isEmpty())
-				return null;
+				return false;
 			Usuario usuario = usuarios.get(0);
 			String query = "select * from juegos where id = ?";
 			ArrayList<Juego> listaJuegos = new ArrayList<>();
@@ -149,41 +150,30 @@ public class CompraVentaVideojuegosApplication {
 				if (juego.isEmpty()) {
 					System.err.println(
 							"USUARIO " + idComprador + " intentó comprar carrito --> ERROR: no se encontró juego");
-					return null;
+					return false;
 				}
 				listaJuegos.add(juego.get(0));
 			}
-			// HASH MAP donde añadiremos las claves
-			HashMap<Long, String> claves = new HashMap<>();
-			for (Juego juego : listaJuegos) {
-				// Si el vendedor es el mismo que el comprador, no te dejará realizar la compra
-				// (comprar un juego propio)
-				if (juego.getVendedor_id() == idComprador) {
-					System.err.println(
-							"USUARIO " + idComprador + " intentó comprar juegos --> ERROR: comprando un juego propio");
-					return null;
-				}
-				// Pasaremos las claves desencriptadas
-				String claveDesencriptada = descifrarClave(juego.getClave());
-				if (claveDesencriptada == null) {
-					System.err.println(
-							"USUARIO " + idComprador + " intentó comprar juegos --> ERROR: al desencriptar la clave");
-					return null;
-				}
-				claves.put(juego.getId(), claveDesencriptada);
-			}
-
 			// Sumamos el total que tiene que pagar el usuario
 			// Inicializamos a 0
 			BigDecimal totalPagar = BigDecimal.ZERO;
-			for (Juego juego : listaJuegos)
+			for (Juego juego : listaJuegos) {
+				// De paso comprobamos si el vendedor es el mismo que el comprador, no te dejará
+				// realizar la compra (comprar un juego propio)
+				if (juego.getVendedor_id() == idComprador) {
+					System.err.println(
+							"USUARIO " + idComprador + " intentó comprar juegos --> ERROR: comprando un juego propio");
+					return false;
+				}
 				totalPagar = totalPagar.add(juego.getPrecio());
+			}
 			System.out.println("TOTAL A PAGAR POR USUARIO " + idComprador + " --> " + totalPagar + "€");
 			// usuario.getSaldo < totalPagar
 			if (usuario.getSaldo().compareTo(totalPagar) < 0) {
 				System.err.println("USUARIO " + idComprador + " intentó pagar juegos --> ERROR: saldo insuficiente");
-				return null;
+				return false;
 			}
+
 			// Le quitamos lo que ha pagado
 			usuario.setSaldo(usuario.getSaldo().subtract(totalPagar));
 
@@ -195,7 +185,7 @@ public class CompraVentaVideojuegosApplication {
 				usuarios = jdbcTemplate.query("select * from usuarios where id = ?", new ListarUsuarios(),
 						juego.getVendedor_id());
 				if (usuarios.isEmpty())
-					return null;
+					return false;
 				usuariosVendedores.put(usuarios.get(0).getId(), usuarios.get(0));
 			}
 
@@ -257,10 +247,10 @@ public class CompraVentaVideojuegosApplication {
 				throw new Exception();
 			System.out.println("USUARIO " + usuario.getId() + " - " + usuario.getNombre() + " --> ha comprado:\n"
 					+ listaJuegos.toString());
-			return claves;
+			return true;
 		} catch (Exception e) {
 			System.err.println("USUARIO " + idComprador + " intentó comprar carrito --> ERROR: persistencia de datos");
-			return null;
+			return false;
 		}
 	}
 
@@ -405,7 +395,7 @@ public class CompraVentaVideojuegosApplication {
 				Usuario usuarioNuevo = listaUsuarios.get(0);
 				return usuarioNuevo;
 			} catch (Exception e) {
-				System.out.println("REGISTRO fallido");
+				System.err.println("Intento de REGISTRO fallido");
 				return null;
 			}
 		}
@@ -596,6 +586,37 @@ public class CompraVentaVideojuegosApplication {
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public List<Juego> misJuegosComprados(@PathVariable Long idUsuario) {
 		return jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id =  ?", new ListarJuegos(), idUsuario);
+
+	}
+	
+	/**
+	 * Método que devuelve las claves de los juegos comprados de un usuario
+	 * @param idUsuario
+	 * @return
+	 */
+	@GetMapping("/clavesJuegosComprados/{idUsuario}")
+	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
+	public HashMap<Long, String> clavesJuegosComprados(@PathVariable Long idUsuario) {
+		List<Juego> listaJuegos = jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id = ?", new ListarJuegos(),
+				idUsuario);
+		if (listaJuegos.isEmpty()) {
+			System.err.println(
+					"USUARIO " + idUsuario + " intentó recibir claves --> ERROR: no se encontraron los juegos");
+			return null;
+		}
+		// HASH MAP donde añadiremos las claves
+		HashMap<Long, String> claves = new HashMap<>();
+		for (Juego juego : listaJuegos) {
+			// Pasaremos las claves desencriptadas
+			String claveDesencriptada = descifrarClave(juego.getClave());
+			if (claveDesencriptada == null) {
+				System.err.println(
+						"USUARIO " + idUsuario + " intentó recibir claves --> ERROR: al desencriptar la clave");
+				return null;
+			}
+			claves.put(juego.getId(), claveDesencriptada);
+		}
+		return claves;
 
 	}
 

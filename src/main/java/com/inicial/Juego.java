@@ -13,7 +13,7 @@ public class Juego implements Serializable {
 	private String nombre;
 	private String imagen;
 	private BigDecimal precio;
-	@JsonIgnore
+//	@JsonIgnore
 	private String clave;
 	private boolean aceptado;
 	private boolean revisado;
