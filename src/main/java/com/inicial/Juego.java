@@ -3,8 +3,6 @@ package com.inicial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
-import javax.crypto.SecretKey;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class Juego implements Serializable {
@@ -19,8 +17,6 @@ public class Juego implements Serializable {
 	private String clave;
 	private boolean aceptado;
 	private boolean revisado;
-//	@JsonIgnore
-//	private SecretKey secretKey;
 
 	public Juego(Long id, Long vendedor_id, Long comprador_id, String nombre, String imagen, BigDecimal precio,
 			String clave, boolean aceptado, boolean revisado) {
