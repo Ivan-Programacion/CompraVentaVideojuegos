@@ -736,7 +736,7 @@ public class CompraVentaVideojuegosApplication {
 	 */
 	private String cifrarClave(String calve) {
 		String mensajeCifrado = null;
-		System.err.println("ENCRIPTADO --> sin encriptar: " + calve);
+		System.out.println("ENCRIPTADO --> sin encriptar: " + calve);
 		// Utilizamos Cipher para encriptar en AES
 		try {
 			Cipher aesCipher = Cipher.getInstance("AES");
@@ -758,7 +758,7 @@ public class CompraVentaVideojuegosApplication {
 		} catch (NoSuchPaddingException e) {
 			e.printStackTrace();
 		}
-		System.err.println("ENCRIPTADO --> encriptado: " + mensajeCifrado);
+		System.out.println("ENCRIPTADO --> encriptado: " + mensajeCifrado);
 		return mensajeCifrado;
 	}
 
@@ -771,7 +771,7 @@ public class CompraVentaVideojuegosApplication {
 	 */
 	public String descifrarClave(String clave) {
 		String mensajeDescifrado = null;
-		System.err.println("DESENCRIPTADO --> sin desencriptar: " + clave);
+		System.out.println("DESENCRIPTADO --> sin desencriptar: " + clave);
 		try {
 			Cipher aesCipher = Cipher.getInstance("AES");
 			aesCipher.init(Cipher.DECRYPT_MODE, CLAVE_SIMETRICA);
@@ -790,7 +790,7 @@ public class CompraVentaVideojuegosApplication {
 		} catch (BadPaddingException e) {
 			e.printStackTrace();
 		}
-		System.err.println("DESENCRIPTADO --> desencriptado: " + mensajeDescifrado);
+		System.out.println("DESENCRIPTADO --> desencriptado: " + mensajeDescifrado);
 		return mensajeDescifrado;
 	}
 
