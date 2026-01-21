@@ -457,7 +457,7 @@ public class CompraVentaVideojuegosApplication {
 	 */
 	// VER @RequestParam para los parámetros. Evitamos problemas de decimales y
 	// nombres con espacios
-	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen}/{precio}")
+	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen:.+}/{precio}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
 			@PathVariable double precio) {
