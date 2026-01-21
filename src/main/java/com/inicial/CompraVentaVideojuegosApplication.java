@@ -96,8 +96,12 @@ public class CompraVentaVideojuegosApplication {
 	// - listarUsuarios
 	// - juegosEnVentaPorUsuario (utilizar misJuegosEnVenta)
 
-	// Con este método se crea la base de datos. Descomentar del codigo para crear
-	// de 0
+	//
+	// ============== IMPORTANTE: ==============
+	// Descomentar este metodo para crear la BBDD al principio desde el endpoint
+	// correspondiente
+	// ============== ============== ==============
+	//
 //	@GetMapping("/crear")
 //	public String crearTabla() {
 //		// Eliminamos si existen
@@ -458,8 +462,8 @@ public class CompraVentaVideojuegosApplication {
 	 * @param clave
 	 * @return Devuelve true si se ha podido realizar o false si no se ha realizado
 	 */
-	// VER @RequestParam para los parámetros. Evitamos problemas de decimales y
-	// nombres con espacios
+	// Hay que añadir en el Path .+ para que reconozca los puntos de las urls de
+	// imagenes como algo que no pertenece al codigo sino a la url
 	@GetMapping("/subirJuego/{idVendedor}/{nombre}/{imagen:.+}/{precio}")
 	@CrossOrigin(origins = "*") // Para que se pueda leer en web (HTML)
 	public boolean subirJuego(@PathVariable Long idVendedor, @PathVariable String nombre, @PathVariable String imagen,
@@ -604,8 +608,7 @@ public class CompraVentaVideojuegosApplication {
 		List<Juego> listaJuegos = jdbcTemplate.query("SELECT * FROM juegos WHERE comprador_id = ?", new ListarJuegos(),
 				idUsuario);
 		if (listaJuegos.isEmpty()) {
-			System.err.println(
-					"USUARIO " + idUsuario + " intentó recibir claves --> ERROR: no se encontraron los juegos");
+			System.out.println("USUARIO " + idUsuario + " intentó recibir claves --> No tiene juegos comprados");
 			return null;
 		}
 		// HASH MAP donde añadiremos las claves
